@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Laundrix · Staff workspace</title>
+  <style>
+    :root{color-scheme:dark;--gold:#e8bd65;--line:#39332a;--panel:#191815;--muted:#c5bba9}
+    *{box-sizing:border-box}body{margin:0;background:#100f0d;color:#faf5eb;font:16px/1.5 system-ui,sans-serif}
+    main{max-width:1020px;margin:auto;padding:26px 20px 64px}header,.bar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+    header{padding-bottom:22px;border-bottom:1px solid var(--line);margin-bottom:24px}strong{font-size:1.45rem}strong span,h2{color:var(--gold)}
+    h1{margin:0 0 14px}h2{font-size:1.15rem;margin:0 0 14px}.layout{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    article{border:1px solid var(--line);background:var(--panel);border-radius:16px;padding:22px}
+    main:has(#loginCard:not([hidden])){min-height:100dvh;display:grid;grid-template-rows:auto auto 1fr;grid-template-columns:minmax(0,1fr);padding-bottom:26px}
+    #loginCard{width:min(100%,440px);place-self:center}
+    form{display:grid;gap:10px}label{display:grid;gap:4px;color:var(--muted)}input,select,button{font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px}
+    input,select{min-width:0;width:100%;background:#100f0d;color:#fff}button{cursor:pointer;background:var(--gold);color:#18140e;font-weight:700}button:disabled{opacity:.5;cursor:default}
+    :focus-visible{outline:2px solid #fff;outline-offset:2px}ul{list-style:none;padding:0;margin:14px 0 0}li{border-top:1px solid var(--line);padding:10px 0;overflow-wrap:anywhere}
+    li button{margin-left:auto}.muted{color:var(--muted)}#notice{min-height:1.5em}#endEdit{background:transparent;color:var(--gold)}[hidden]{display:none!important}
+    @media(max-width:680px){.layout{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<main>
+  <header><strong>Laund<span>rix</span></strong><button id="logout" hidden>Sign out</button></header>
+  <p id="notice" role="status"></p>
+  <article id="loginCard">
+    <h1>Staff sign-in</h1>
+    <form id="login">
+      <label>Email<input name="email" type="email" autocomplete="username" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button>Sign in</button>
+    </form>
+  </article>
+  <section id="workspace" hidden>
+    <h1 id="shop"></h1>
+    <label id="shopPicker" hidden>Business<select id="business"></select></label>
+    <div class="layout">
+      <article>
+        <h2>Customers</h2>
+        <form id="customerForm">
+          <label>Name<input name="name" maxlength="120" required></label>
+          <label>Phone<input name="phone" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10 digits" required></label>
+          <button id="saveCustomer">Add customer</button>
+          <button type="button" id="endEdit" hidden>Cancel edit</button>
+        </form>
+        <label>Find a customer<input id="search" type="search"></label>
+        <ul id="customers"></ul>
+      </article>
+      <article>
+        <h2>Laundry orders</h2>
+        <form id="orderForm">
+          <label>Customer<select name="customer_id" required></select></label>
+          <label>Service<select name="service"><option>Wash &amp; dry</option><option>Ironing</option><option>Blankets</option></select></label>
+          <label>Unit<select name="unit"><option value="load">Per load</option><option value="kg">Per kg</option><option value="item">Per item</option></select></label>
+          <label>Quantity<input name="quantity" type="number" min="0.1" max="10000" step="0.01" required></label>
+          <label>Price per unit (R)<input name="unit_price" type="number" min="0" max="100000" step="0.01" required></label>
+          <button>Add order</button>
+        </form>
+        <ul id="orders"></ul>
+      </article>
+    </div>
+  </section>
+</main>
+<script type="module">
+const projectUrl = 'https://opkrwemmxsxydaflxrck.supabase.co';
+const publishableKey = 'sb_publishable_bidMSdyFEnly5RUsxNp0rw_ug65i3yQ';
+
+const byId = id => document.getElementById(id);
+const login = byId('login');
+const customerForm = byId('customerForm');
+const orderForm = byId('orderForm');
+const business = byId('business');
+const customerSelect = orderForm.elements.customer_id;
+const money = new Intl.NumberFormat('en-ZA', { style: 'currency', currency: 'ZAR' });
+const statuses = ['Received', 'Ready', 'Collected'];
+let token = '';
+let expiry;
+let customers = [];
+let editing = '';
+let busy = false;
+
+function notice(message) {
+  byId('notice').textContent = message;
+}
+
+function clearSession(message = '') {
+  clearTimeout(expiry);
+  token = '';
+  customers = [];
+  editing = '';
+  customerForm.reset();
+  orderForm.reset();
+  quantityLimits();
+  business.replaceChildren();
+  customerSelect.replaceChildren();
+  byId('customers').replaceChildren();
+  byId('orders').replaceChildren();
+  byId('shop').textContent = '';
+  byId('search').value = '';
+  resetCustomerForm();
+  byId('workspace').hidden = true;
+  byId('logout').hidden = true;
+  byId('loginCard').hidden = false;
+  notice(message);
+}
+
+async function request(path, {method = 'GET', body} = {}) {
+  const headers = { apikey: publishableKey };
+  if (token) headers.Authorization = 'Bearer ' + token;
+  if (body) headers['Content-Type'] = 'application/json';
+  const response = await fetch(projectUrl.replace(/\/$/, '') + path, {
+    method, headers, body: body && JSON.stringify(body),
+    cache: 'no-store', credentials: 'omit'
+  });
+  if (!response.ok) {
+    if ([401, 403].includes(response.status) && token) {
+      clearSession('Your session ended. Please sign in again.');
+      throw new Error('Your session ended. Please sign in again.');
+    }
+    if (response.status === 409) throw new Error('This phone number already belongs to a customer.');
+    throw new Error(path.startsWith('/auth/') ? 'Sign-in failed. Check your details or contact your administrator.' : 'The request could not be completed.');
+  }
+  return response.status === 204 || response.headers.get('content-length') === '0'
+    ? null : JSON.parse((await response.text()) || 'null');
+}
+
+async function run(action) {
+  if (busy) return;
+  busy = true;
+  const controls = document.querySelectorAll('button, input, select');
+  const enabled = [...controls].filter(control => !control.disabled);
+  enabled.forEach(control => { control.disabled = true; });
+  notice('');
+  try {
+    await action();
+  } catch (error) {
+    notice(error.message);
+  } finally {
+    busy = false;
+    enabled.forEach(control => { control.disabled = false; });
+    customerSelect.disabled = !customers.length;
+  }
+}
+
+function query(table, fields, extra = {}) {
+  const params = new URLSearchParams({ select: fields, business_id: 'eq.' + business.value, ...extra });
+  return '/rest/v1/' + table + '?' + params;
+}
+
+function resetCustomerForm() {
+  editing = '';
+  customerForm.reset();
+  byId('saveCustomer').textContent = 'Add customer';
+  byId('endEdit').hidden = true;
+}
+
+function button(label, action) {
+  const item = document.createElement('button');
+  item.type = 'button';
+  item.textContent = label;
+  item.addEventListener('click', () => { if (!busy) action(); });
+  return item;
+}
+
+function row(label, action) {
+  const item = document.createElement('li');
+  item.className = 'bar';
+  const title = document.createElement('span');
+  title.textContent = label;
+  item.append(title);
+  if (action) item.append(action);
+  return item;
+}
+
+function showCustomers() {
+  const term = byId('search').value.trim().toLowerCase();
+  const rows = customers.filter(customer => customer.name.toLowerCase().includes(term) || customer.phone.includes(term))
+    .map(customer => row(customer.name + ' · ' + customer.phone, button('Edit', () => {
+      editing = customer.id;
+      customerForm.elements.name.value = customer.name;
+      customerForm.elements.phone.value = customer.phone;
+      byId('saveCustomer').textContent = 'Save changes';
+      byId('endEdit').hidden = false;
+      customerForm.elements.name.focus();
+    })));
+  byId('customers').replaceChildren(...(rows.length ? rows : [row('No matching customers.')]));
+}
+
+async function loadWorkspace() {
+  const currentToken = token;
+  const currentBusiness = business.value;
+  const [customerRows, orders] = await Promise.all([
+    request(query('customers', 'id,name,phone', { order: 'name.asc' })),
+    request(query('laundry_orders', 'id,customer_id,service,quantity,unit,total,status', { order: 'created_at.desc', limit: '50' }))
+  ]);
+  if (!token || currentToken !== token || currentBusiness !== business.value) return;
+  const selected = customerSelect.value;
+  customers = customerRows;
+  customerSelect.replaceChildren(new Option('Select a customer', ''), ...customers.map(c => new Option(c.name + ' · ' + c.phone, c.id)));
+  customerSelect.value = customers.some(c => c.id === selected) ? selected : '';
+  byId('shop').textContent = business.selectedOptions[0].textContent;
+  showCustomers();
+  byId('orders').replaceChildren(...(orders.length ? orders.map(order => {
+    const who = customers.find(customer => customer.id === order.customer_id)?.name || 'Customer';
+    const next = statuses[statuses.indexOf(order.status) + 1];
+    return row([who, order.service, order.quantity + ' ' + order.unit, money.format(order.total), order.status].join(' · '),
+      next && button('Mark ' + next.toLowerCase(), () => run(async () => {
+        await request(query('laundry_orders', 'id', {id: 'eq.' + order.id, status: 'eq.' + order.status}), {
+          method: 'PATCH', body: {status: next}
+        });
+        await loadWorkspace();
+      })));
+  }) : [row('No laundry orders yet.')]));
+}
+
+login.addEventListener('submit', event => {
+  event.preventDefault();
+  const credentials = Object.fromEntries(new FormData(login));
+  login.reset();
+  run(async () => {
+    try {
+      const session = await request('/auth/v1/token?grant_type=password', {method: 'POST', body: credentials});
+      token = session.access_token;
+      expiry = setTimeout(() => clearSession('Your session expired. Please sign in again.'), session.expires_in * 1000);
+      const businesses = await request('/rest/v1/businesses?select=id,name&order=name.asc');
+      if (!businesses.length) return clearSession('Your account has no assigned business. Contact your administrator.');
+      business.replaceChildren(...businesses.map(shop => new Option(shop.name, shop.id)));
+      byId('shopPicker').hidden = businesses.length < 2;
+      await loadWorkspace();
+      if (!token) return;
+      byId('workspace').hidden = false;
+      byId('logout').hidden = false;
+      byId('loginCard').hidden = true;
+    } catch (error) {
+      clearSession(error.message);
+    }
+  });
+});
+
+byId('logout').addEventListener('click', () => run(async () => {
+  try {
+    await request('/auth/v1/logout?scope=local', {method: 'POST'});
+  } finally {
+    clearSession();
+  }
+}));
+business.addEventListener('change', () => run(async () => {
+  resetCustomerForm();
+  orderForm.reset();
+  quantityLimits();
+  byId('workspace').hidden = true;
+  try {
+    await loadWorkspace();
+    if (token) byId('workspace').hidden = false;
+  } catch (error) {
+    clearSession(error.message);
+  }
+}));
+byId('search').addEventListener('input', showCustomers);
+byId('endEdit').addEventListener('click', resetCustomerForm);
+
+customerForm.addEventListener('submit', event => {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(customerForm));
+  values.name = values.name.trim();
+  if (!values.name) return notice('Enter a customer name.');
+  run(async () => {
+    if (editing) {
+      await request(query('customers', 'id', { id: 'eq.' + editing }), {method: 'PATCH', body: values});
+    } else {
+      await request('/rest/v1/customers', {method: 'POST', body: { ...values, business_id: business.value }});
+    }
+    resetCustomerForm();
+    await loadWorkspace();
+    if (token) notice('Customer saved.');
+  });
+});
+
+function quantityLimits() {
+  const perKg = orderForm.elements.unit.value === 'kg';
+  orderForm.elements.quantity.min = perKg ? '0.10' : '1';
+  orderForm.elements.quantity.step = perKg ? '0.01' : '1';
+}
+orderForm.elements.unit.addEventListener('change', quantityLimits);
+quantityLimits();
+
+orderForm.addEventListener('submit', event => {
+  event.preventDefault();
+  const values = Object.fromEntries(new FormData(orderForm));
+  run(async () => {
+    await request('/rest/v1/laundry_orders', {method: 'POST', body: {
+      ...values, business_id: business.value, quantity: Number(values.quantity), unit_price: Number(values.unit_price)
+    }});
+    orderForm.reset();
+    quantityLimits();
+    await loadWorkspace();
+    if (token) notice('Laundry order saved.');
+  });
+});
+
+if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(projectUrl) || !publishableKey.startsWith('sb_publishable_')) {
+  login.querySelector('fieldset, button').disabled = true;
+  login.addEventListener('submit', event => {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  }, true);
+  notice('Cloud setup is required before staff can sign in.');
+}
+</script>
+</body>
+</html>
