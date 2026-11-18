@@ -52,10 +52,38 @@
 @media print{:root[data-theme="dark"]{color-scheme:light}body{background:#fff!important;color:#182230!important}.panel,.card{background:#fff!important;color:#182230!important}.theme-panel{display:none!important}}
 
 .module-nav{display:flex;gap:8px;flex-wrap:wrap;padding:12px;margin:-8px 0 18px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff)}.module-nav.hidden{display:none}.module-nav button{border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--ink);padding:9px 12px;font-weight:700;cursor:pointer}.module-nav button.active{background:var(--blue);color:var(--button-text,#fff)}.module-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}.module-tile{text-align:left;display:flex;flex-direction:column;gap:8px;background:var(--surface,#fff);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px;cursor:pointer}.module-tile span{font-size:29px}.module-tile strong{font-size:19px}.module-tile small{color:var(--muted);font-size:13px}.custom-theme-box{border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:18px}.custom-theme-box h3{margin:0 0 6px}.custom-theme-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:12px}.custom-theme-fields label{display:flex;flex-direction:column;gap:6px;font-weight:700;font-size:13px}.custom-theme-fields input{height:46px;cursor:pointer}.tabs button.active,.btn.primary{color:var(--button-text,#fff)}:root[data-theme="custom"] .card,:root[data-theme="custom"] .panel,:root[data-theme="custom"] .action-menu-items,:root[data-theme="custom"] .unpaid-detail-box{background:var(--surface);color:var(--ink)}:root[data-theme="custom"] input:not([type="color"]),:root[data-theme="custom"] select{background:var(--surface);color:var(--ink)}:root[data-theme="custom"] .field label{color:var(--ink)}:root[data-theme="custom"] .tabs button:not(.active),:root[data-theme="custom"] .btn:not(.primary):not(.danger){background:var(--surface);color:var(--ink)}:root[data-theme="custom"] .total{color:var(--blue)}@media(max-width:600px){.module-tiles{grid-template-columns:1fr}.module-tile{padding:14px}}
-</style><style id="invoice-template-ui">.invoice-template-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}.invoice-template-option{background:var(--surface,#fff);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:10px;text-align:left;cursor:pointer;font:inherit}.invoice-template-option[aria-pressed="true"]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}.invoice-template-option strong{display:block;font-size:13px;margin-top:7px}.invoice-template-option small{font-size:11px;color:var(--muted)}.invoice-mini{height:67px;border:1px solid #d7dde6;border-radius:4px;background:#fff;display:flex;flex-direction:column;gap:5px;padding:9px}.invoice-mini i{display:block;height:6px;background:#e5e7eb;border-radius:2px}.invoice-mini i:first-child{width:65%;height:11px;background:var(--mini-color,#243c62)}.invoice-mini i:nth-child(2){width:90%}.invoice-mini i:nth-child(3){width:100%}.invoice-mini i:last-child{width:38%;align-self:flex-end;background:var(--mini-color,#243c62)}@media(max-width:460px){.invoice-template-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}</style></head>
+</style><style id="invoice-template-ui">.invoice-template-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}.invoice-template-option{background:var(--surface,#fff);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:10px;text-align:left;cursor:pointer;font:inherit}.invoice-template-option[aria-pressed="true"]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}.invoice-template-option strong{display:block;font-size:13px;margin-top:7px}.invoice-template-option small{font-size:11px;color:var(--muted)}.invoice-mini{height:67px;border:1px solid #d7dde6;border-radius:4px;background:#fff;display:flex;flex-direction:column;gap:5px;padding:9px}.invoice-mini i{display:block;height:6px;background:#e5e7eb;border-radius:2px}.invoice-mini i:first-child{width:65%;height:11px;background:var(--mini-color,#243c62)}.invoice-mini i:nth-child(2){width:90%}.invoice-mini i:nth-child(3){width:100%}.invoice-mini i:last-child{width:38%;align-self:flex-end;background:var(--mini-color,#243c62)}@media(max-width:460px){.invoice-template-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}</style><style>
+  [hidden]{display:none!important}
+  #businessEntry{width:min(100% - 32px,480px);margin:clamp(32px,9vh,96px) auto}
+  #businessEntry h2{margin-top:0}
+  #businessSetup{display:grid;gap:14px}
+  #businessSetup .field{min-width:0}
+  #businessSetup input{width:100%;box-sizing:border-box}
+  #businessSetup button{justify-self:start}
+  #businessWelcome{text-align:center}
+  #welcomeLogo,#headerLogo{object-fit:contain;background:#fff;border-radius:10px}
+  #welcomeLogo{width:112px;height:112px;margin:0 auto 14px}
+  #headerLogo{width:38px;height:38px}
+  #businessBrand{display:flex;align-items:center;gap:10px}
+</style></head>
 <body>
-<header><div><h1>🧺 Laundrix</h1><small>Multi-business laundry management · MVP demo</small></div><div id="businessLabel">Demo Laundry</div></header>
-<div class="wrap"><p class="notice"><strong>Interactive demo.</strong> Use fictional names and numbers only. Records stay in this browser. All prices shown are examples. <a href="/">Back to Laundrix</a></p>
+<header><div><h1>🧺 Laundrix</h1><small>Multi-business laundry management · MVP demo</small></div><div id="businessBrand" hidden><img id="headerLogo" alt="" hidden><span id="businessLabel"></span></div></header>
+<section id="businessEntry" class="panel" aria-label="Business setup and welcome">
+  <form id="businessSetup">
+    <h2 id="setupHeading" tabindex="-1">Set up your laundry business</h2>
+    <p class="muted">Enter a sample business name and upload a logo to preview your branded workspace.</p>
+    <div class="field"><label for="setupName">Business name</label><input id="setupName" required maxlength="120" autocomplete="organization"></div>
+    <div class="field"><label for="setupLogo">Business logo (optional)</label><input id="setupLogo" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="logoHint"><small id="logoHint">PNG, JPEG or WebP, up to 1 MB</small></div>
+    <p id="setupError" role="alert" hidden></p>
+    <button type="submit" class="btn primary" id="finishSetup">Save and continue</button>
+  </form>
+  <div id="businessWelcome" hidden>
+    <img id="welcomeLogo" alt="" hidden>
+    <h2 id="welcomeHeading" tabindex="-1"></h2>
+    <button type="button" class="btn primary" id="enterDashboard">Open dashboard</button>
+  </div>
+</section>
+<div class="wrap" id="dashboardWorkspace" hidden><p class="notice"><strong>Interactive demo.</strong> Use fictional names and numbers only. Records stay in this browser. All prices shown are examples. <a href="/">Back to Laundrix</a></p>
 <div class="tabs" aria-label="Main sections"><button class="active" data-tab="dashboard">🏠 Dashboard</button><button type="button" data-group="laundry">🧺 Laundry ▾</button><button type="button" data-group="retail">🛒 Point of Sale ▾</button><button type="button" data-group="business">📊 Business ▾</button><button data-tab="settings">⚙️ Settings</button></div>
 <div id="moduleNav" class="module-nav hidden" aria-label="Section shortcuts"></div>
 <section id="dashboard" class="view"><div class="panel"><button type="button" class="btn secondary" onclick="openLPSection('pricing')">Services &amp; Pricing</button></div><div class="grid"><div class="card"><div class="muted">Today's orders</div><div class="metric" id="mOrders">0</div></div><div class="card"><div class="muted">Today's sales</div><div class="metric" id="mSales">R0.00</div></div><div class="card"><div class="muted">Outstanding</div><div class="metric" id="mDue">R0.00</div></div><div class="card"><div class="muted">Customers</div><div class="metric" id="mCustomers">0</div></div></div><div class="module-tiles"><button type="button" class="module-tile" onclick="openLPGroup('laundry')"><span>🧺</span><strong>Laundry</strong><small>Orders, customers, payments & services</small></button><button type="button" class="module-tile" onclick="openLPGroup('retail')"><span>🛒</span><strong>Point of Sale</strong><small>Quick sales, products & inventory</small></button><button type="button" class="module-tile" onclick="openLPGroup('business')"><span>📊</span><strong>Business</strong><small>Reports & business overview</small></button></div><div id="stockAlerts" class="small-note" style="margin-top:12px"></div><div class="panel"><h2>Recent orders</h2><div id="recent"></div></div></section>
@@ -114,7 +142,7 @@ function editCollectionStatus(id){let o=db.orders.find(x=>x.id===id);if(!o)retur
 function editPayment(id){let o=db.orders.find(x=>x.id===id);if(!o)return;let current=o.paid;let entered=prompt(`Update payment for ${o.customer}\nOrder total: ${money(o.total)}\nCurrently paid: ${money(current)}\n\nEnter the CORRECT total amount paid so far (0 to ${o.total}):`,String(current));if(entered===null)return;let amount=Number(entered);if(!Number.isFinite(amount)||amount<0||amount>o.total){alert('Enter a valid amount between R0 and the order total.');return}let methodChoice=prompt('Payment method (Cash, EFT, Card, Other):',o.payMethod||'Cash');if(methodChoice===null)return;let difference=amount-current;if(difference!==0){o.paymentHistory=o.paymentHistory||[];o.paymentHistory.push({date:new Date().toISOString(),amount:difference,method:methodChoice,edited:true})}o.paid=amount;o.due=Math.max(0,o.total-amount);o.payMethod=methodChoice;save();alert(`Payment updated. Status: ${o.due===0?'Paid':amount===0?'Not paid':'Partially paid'}.`)}
 function saveSettings(){db.business.name=bName.value.trim()||'My Laundry';db.business.phone=bPhone.value.trim();db.business.registration=document.getElementById('bReg').value.trim();db.business.address=document.getElementById('bAddress').value.trim();db.business.email=document.getElementById('bEmail').value.trim();db.business.bankName=document.getElementById('bBankName').value.trim();db.business.accountName=document.getElementById('bAccountName').value.trim();db.business.accountNumber=document.getElementById('bAccountNumber').value.trim();db.business.branchCode=document.getElementById('bBranchCode').value.trim();db.business.accountType=document.getElementById('bAccountType').value.trim();save();alert('Business details saved. They will appear on printed invoices.')}function customerOrders(id){return db.orders.filter(o=>o.customerId===id)}
 function renderCustomers(){let q=(document.getElementById('customerSearch')?.value||'').trim().toLowerCase();let filtered=db.customers.filter(c=>c.name.toLowerCase().includes(q)||c.phone.toLowerCase().includes(q));customersTable.innerHTML=filtered.length?`<table><thead><tr><th>Customer</th><th>Phone</th><th>Visits</th><th>Total spent</th><th>Outstanding</th><th>History</th><th>Edit</th></tr></thead><tbody>${filtered.map(c=>{let os=customerOrders(c.id);return `<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td>${os.length}</td><td>${money(os.reduce((a,o)=>a+o.total,0))}</td><td>${money(os.reduce((a,o)=>a+o.due,0))}</td><td><button class="btn secondary" onclick="historyFor(${c.id})">View</button></td><td><button class="btn secondary" onclick="editCustomer(${c.id})">Edit details</button></td></tr>`}).join('')}</tbody></table>`:(db.customers.length?'<div class="empty">No customers match your search.</div>':'<div class="empty">No customers yet. Add your first customer above.</div>')}
-function render(){businessLabel.textContent=db.business.name; bName.value=db.business.name;bPhone.value=db.business.phone||'';document.getElementById('bReg').value=db.business.registration||'';document.getElementById('bAddress').value=db.business.address||'';document.getElementById('bEmail').value=db.business.email||'';document.getElementById('bBankName').value=db.business.bankName||'';document.getElementById('bAccountName').value=db.business.accountName||'';document.getElementById('bAccountNumber').value=db.business.accountNumber||'';document.getElementById('bBranchCode').value=db.business.branchCode||'';document.getElementById('bAccountType').value=db.business.accountType||'';let lp=document.getElementById('logoPreview');if(db.business.logo){lp.src=db.business.logo;lp.style.display='block'}else{lp.removeAttribute('src');lp.style.display='none'}customerOptions.innerHTML=db.customers.map(c=>`<option value="${esc(c.name+' — '+c.phone)}"></option>`).join('');let orderedServices=db.services.map((service,index)=>({service,index})).sort((a,b)=>Number(!!b.service.pinned)-Number(!!a.service.pinned));orderService.innerHTML=orderedServices.map(x=>`<option value="${esc(x.service.name)}">${x.service.pinned?'★ ':''}${esc(x.service.name)}</option>`).join('');if(db.services.length){let preferred=orderedServices.find(x=>x.service.pinned)||orderedServices[0];orderService.value=preferred.service.name;serviceChanged()}servicesTable.innerHTML=db.services.length?`<table><thead><tr><th>Service</th><th>Pricing method</th><th>Price</th><th>Favourite</th><th>Action</th></tr></thead><tbody>${orderedServices.map(({service:s,index:i})=>`<tr><td>${esc(s.name)}</td><td>${labelMethod(s.method)}</td><td>${money(s.price)}</td><td><button class="btn secondary" onclick="togglePinService(${i})">${s.pinned?'★ Pinned':'☆ Pin to top'}</button></td><td><button type="button" class="btn secondary" onclick="editServicePrice(${i})">Edit price</button> <button class="btn danger" onclick="deleteService(${i})">Delete</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No services yet. Add a service above.</div>'; renderCustomers();renderOrderTable();renderUnpaid();recent.innerHTML=ordersHtml(db.orders.slice(0,5));let today=new Date().toDateString(),tod=db.orders.filter(o=>new Date(o.date).toDateString()===today);mOrders.textContent=tod.length;mSales.textContent=money(tod.reduce((a,o)=>a+o.paid,0));mDue.textContent=money(db.orders.reduce((a,o)=>a+o.due,0));mCustomers.textContent=db.customers.length;calcTotal()}
+function render(){businessLabel.textContent=db.business.name;updateBusinessLogo(); bName.value=db.business.name;bPhone.value=db.business.phone||'';document.getElementById('bReg').value=db.business.registration||'';document.getElementById('bAddress').value=db.business.address||'';document.getElementById('bEmail').value=db.business.email||'';document.getElementById('bBankName').value=db.business.bankName||'';document.getElementById('bAccountName').value=db.business.accountName||'';document.getElementById('bAccountNumber').value=db.business.accountNumber||'';document.getElementById('bBranchCode').value=db.business.branchCode||'';document.getElementById('bAccountType').value=db.business.accountType||'';let lp=document.getElementById('logoPreview');if(db.business.logo){lp.src=db.business.logo;lp.style.display='block'}else{lp.removeAttribute('src');lp.style.display='none'}customerOptions.innerHTML=db.customers.map(c=>`<option value="${esc(c.name+' — '+c.phone)}"></option>`).join('');let orderedServices=db.services.map((service,index)=>({service,index})).sort((a,b)=>Number(!!b.service.pinned)-Number(!!a.service.pinned));orderService.innerHTML=orderedServices.map(x=>`<option value="${esc(x.service.name)}">${x.service.pinned?'★ ':''}${esc(x.service.name)}</option>`).join('');if(db.services.length){let preferred=orderedServices.find(x=>x.service.pinned)||orderedServices[0];orderService.value=preferred.service.name;serviceChanged()}servicesTable.innerHTML=db.services.length?`<table><thead><tr><th>Service</th><th>Pricing method</th><th>Price</th><th>Favourite</th><th>Action</th></tr></thead><tbody>${orderedServices.map(({service:s,index:i})=>`<tr><td>${esc(s.name)}</td><td>${labelMethod(s.method)}</td><td>${money(s.price)}</td><td><button class="btn secondary" onclick="togglePinService(${i})">${s.pinned?'★ Pinned':'☆ Pin to top'}</button></td><td><button type="button" class="btn secondary" onclick="editServicePrice(${i})">Edit price</button> <button class="btn danger" onclick="deleteService(${i})">Delete</button></td></tr>`).join('')}</tbody></table>`:'<div class="empty">No services yet. Add a service above.</div>'; renderCustomers();renderOrderTable();renderUnpaid();recent.innerHTML=ordersHtml(db.orders.slice(0,5));let today=new Date().toDateString(),tod=db.orders.filter(o=>new Date(o.date).toDateString()===today);mOrders.textContent=tod.length;mSales.textContent=money(tod.reduce((a,o)=>a+o.paid,0));mDue.textContent=money(db.orders.reduce((a,o)=>a+o.due,0));mCustomers.textContent=db.customers.length;calcTotal()}
 function table(head,rows){return rows.length?`<table><thead><tr>${head.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</tbody></table>`:'<div class="empty">No records yet.</div>'}
 function labelMethod(m){return {weight:'Per kg',item:'Per item',load:'Per load',fixed:'Fixed price'}[m]||m}
 function orderServiceText(o){return o.items&&o.items.length?o.items.map(x=>`${esc(x.service)} (${x.qty} ${x.method==='weight'?'kg':labelMethod(x.method).toLowerCase()})`).join('<br>'):esc(o.service)}
@@ -190,4 +218,73 @@ body.invoice-elegant{font-family:Georgia,serif}body.invoice-elegant .brandhead{b
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`}
 function previewInvoiceTemplate(){const name=(db.business&&db.business.name)||'Your Laundry Business';const w=window.open('','_blank','width=850,height=720');if(!w)return alert('Please allow pop-ups to preview the invoice.');w.document.write(`<!doctype html><html><head><title>Invoice template preview</title><style>*{box-sizing:border-box}body{font:13px/1.5 Arial,sans-serif;max-width:780px;margin:auto;padding:28px;color:#17243a}.brandhead{display:flex;align-items:center;border-bottom:4px solid #2463eb;padding-bottom:16px}.brandname{font-size:22px;font-weight:800;color:#14243a}.invoicebar{display:flex;justify-content:space-between;align-items:center;margin:24px 0}.invoicetitle{font-size:20px;font-weight:800;color:#14243a}.tag{background:#fff4d6;color:#925b00;padding:5px 10px;border-radius:15px}.customerbox{background:#f5f7fb;border:1px solid #e1e7f0;padding:14px;border-radius:8px}table{width:100%;border-collapse:collapse;margin:20px 0}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{background:#14243a;color:white}.sum{text-align:right}.balance{color:#1d4ed8}.bankbox{background:#f8fafc;border:1px solid #cbd5e1;padding:14px;border-radius:8px}.banktitle{font-weight:800}.no-print{margin-top:18px}@media print{.no-print{display:none}}${invoicePrintCss()}</style></head><body class="invoice-${getInvoiceTemplate()}"><div class="brandhead"><div class="brandname">${esc(name)}</div></div><div class="invoicebar"><div class="invoicetitle">INVOICE · SAMPLE</div><span class="tag">PREVIEW ONLY</span></div><div class="customerbox"><b>Customer:</b> Example Customer<br><b>Invoice:</b> SAMPLE-001<br><b>Date:</b> ${new Date().toLocaleDateString()}</div><table><thead><tr><th>Description</th><th>Quantity</th><th>Unit Price</th><th>Total</th></tr></thead><tbody><tr><td>Wash & Dry</td><td>2 loads</td><td>R 50.00</td><td>R 100.00</td></tr><tr><td>Ironing</td><td>1 item</td><td>R 20.00</td><td>R 20.00</td></tr></tbody></table><div class="sum"><p>Total: R 120.00</p><h2 class="balance">Amount Due: R 120.00</h2></div><div class="bankbox"><div class="banktitle">BANKING DETAILS</div>Bank details will appear here when configured.</div><p><small>Sample information only — this is not a real invoice.</small></p><div class="no-print"><button onclick="window.print()">Print sample</button></div></body></html>`);w.document.close()}
 renderInvoiceTemplates();
+
+function updateBusinessLogo(){
+  const validLogo=/^data:image\/(png|jpeg|webp);base64,/i.test(db.business.logo||'');
+  for(const id of ['welcomeLogo','headerLogo']){
+    const image=document.getElementById(id);
+    image.hidden=!validLogo;
+    if(validLogo)image.src=db.business.logo;
+    else image.removeAttribute('src');
+  }
+}
+const setupForm=document.getElementById('businessSetup');
+const welcome=document.getElementById('businessWelcome');
+const welcomeHeading=document.getElementById('welcomeHeading');
+function showBusinessWelcome(){
+  setupForm.hidden=true;
+  welcome.hidden=false;
+  welcomeHeading.textContent='Welcome to '+db.business.name;
+  updateBusinessLogo();
+  welcomeHeading.focus();
+}
+if(db.business.setupComplete){
+  showBusinessWelcome();
+}else if(db.business.name!=='Demo Laundry'){
+  document.getElementById('setupName').value=db.business.name;
+}
+setupForm.addEventListener('submit',async event=>{
+  event.preventDefault();
+  const name=document.getElementById('setupName').value.trim();
+  const file=document.getElementById('setupLogo').files[0];
+  const error=document.getElementById('setupError');
+  const submit=document.getElementById('finishSetup');
+  const previous=db.business;
+  error.hidden=true;
+  submit.disabled=true;
+  try{
+    if(!name)throw new Error('Enter your business name.');
+    if(file&&(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>1048576)){
+      throw new Error('Choose a PNG, JPEG or WebP logo under 1 MB.');
+    }
+    let logo=previous.logo||'';
+    if(file){
+      logo=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=()=>resolve(reader.result);
+        reader.onerror=()=>reject(new Error('The logo could not be read. Choose it again.'));
+        reader.readAsDataURL(file);
+      });
+      const image=new Image();
+      image.src=logo;
+      await image.decode().catch(()=>{throw new Error('This logo could not be opened. Choose another image.');});
+    }
+    db.business={...previous,name,logo,setupComplete:true};
+    try{localStorage.setItem('laundrypro_demo',JSON.stringify(db));}
+    catch{db.business=previous;throw new Error('This browser could not save your setup. Try a smaller logo or allow site storage.');}
+    showBusinessWelcome();
+  }catch(problem){
+    error.textContent=problem.message;
+    error.hidden=false;
+  }finally{
+    submit.disabled=false;
+  }
+});
+document.getElementById('enterDashboard').addEventListener('click',()=>{
+  document.getElementById('businessEntry').hidden=true;
+  document.getElementById('businessBrand').hidden=false;
+  document.getElementById('dashboardWorkspace').hidden=false;
+  openLPSection('dashboard');
+  document.querySelector('[data-tab="dashboard"]').focus();
+});
 </script></body></html>
