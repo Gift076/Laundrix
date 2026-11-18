@@ -18,6 +18,11 @@
     input,select{min-width:0;width:100%;background:#100f0d;color:#fff}button{cursor:pointer;background:var(--gold);color:#18140e;font-weight:700}button:disabled{opacity:.5;cursor:default}
     :focus-visible{outline:2px solid #fff;outline-offset:2px}ul{list-style:none;padding:0;margin:14px 0 0}li{border-top:1px solid var(--line);padding:10px 0;overflow-wrap:anywhere}
     li button{margin-left:auto}.muted{color:var(--muted)}#notice{min-height:1.5em}#endEdit{background:transparent;color:var(--gold)}[hidden]{display:none!important}
+    .workspace-nav,.stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
+    .workspace-nav button[aria-current="page"]{background:var(--gold);color:#18140e}
+    .workspace-nav button{background:var(--panel);color:var(--gold);border-color:var(--line)}
+    .stats article{flex:1 1 140px}.stats strong{display:block;font-size:1.65rem}
+    #overview article h2{margin-bottom:4px}#overview .bar{margin-top:10px}
     @media(max-width:680px){.layout{grid-template-columns:1fr}}
   </style>
 </head>
@@ -36,8 +41,24 @@
   <section id="workspace" hidden>
     <h1 id="shop"></h1>
     <label id="shopPicker" hidden>Business<select id="business"></select></label>
-    <div class="layout">
+    <nav class="workspace-nav" aria-label="Staff dashboard">
+      <button type="button" data-view="overview" aria-current="page">Dashboard</button>
+      <button type="button" data-view="orderPanel">Orders</button>
+      <button type="button" data-view="customerPanel">Customers</button>
+    </nav>
+    <section id="overview" class="workspace-view" aria-label="Dashboard overview">
+      <div class="stats">
+        <article><span class="muted">Recent orders</span><strong id="orderCount">0</strong></article>
+        <article><span class="muted">Ready in recent orders</span><strong id="readyCount">0</strong></article>
+        <article><span class="muted">Customers</span><strong id="customerCount">0</strong></article>
+      </div>
       <article>
+        <h2>Recent laundry orders</h2>
+        <ul id="recentOrders"></ul>
+      </article>
+    </section>
+    <div class="layout" style="grid-template-columns:1fr">
+      <article id="customerPanel" class="workspace-view" hidden>
         <h2>Customers</h2>
         <form id="customerForm">
           <label>Name<input name="name" maxlength="120" required></label>
@@ -48,7 +69,7 @@
         <label>Find a customer<input id="search" type="search"></label>
         <ul id="customers"></ul>
       </article>
-      <article>
+      <article id="orderPanel" class="workspace-view" hidden>
         <h2>Laundry orders</h2>
         <form id="orderForm">
           <label>Customer<select name="customer_id" required></select></label>
@@ -97,6 +118,9 @@ function clearSession(message = '') {
   customerSelect.replaceChildren();
   byId('customers').replaceChildren();
   byId('orders').replaceChildren();
+  byId('recentOrders').replaceChildren();
+  for (const id of ['orderCount', 'readyCount', 'customerCount']) byId(id).textContent = '0';
+  showView('overview');
   byId('shop').textContent = '';
   byId('search').value = '';
   resetCustomerForm();
@@ -188,6 +212,18 @@ function showCustomers() {
   byId('customers').replaceChildren(...(rows.length ? rows : [row('No matching customers.')]));
 }
 
+function showView(id) {
+  document.querySelectorAll('.workspace-view').forEach(panel => { panel.hidden = panel.id !== id; });
+  document.querySelectorAll('.workspace-nav button').forEach(button => {
+    if (button.dataset.view === id) button.setAttribute('aria-current', 'page');
+    else button.removeAttribute('aria-current');
+  });
+}
+
+document.querySelectorAll('.workspace-nav button').forEach(button => {
+  button.addEventListener('click', () => showView(button.dataset.view));
+});
+
 async function loadWorkspace() {
   const currentToken = token;
   const currentBusiness = business.value;
@@ -202,6 +238,14 @@ async function loadWorkspace() {
   customerSelect.value = customers.some(c => c.id === selected) ? selected : '';
   byId('shop').textContent = business.selectedOptions[0].textContent;
   showCustomers();
+  byId('orderCount').textContent = orders.length;
+  byId('readyCount').textContent = orders.filter(order => order.status === 'Ready').length;
+  byId('customerCount').textContent = customers.length;
+  const recent = orders.slice(0, 5).map(order => {
+    const name = customers.find(customer => customer.id === order.customer_id)?.name || 'Customer';
+    return row([name, order.service, order.status, money.format(order.total)].join(' · '));
+  });
+  byId('recentOrders').replaceChildren(...(recent.length ? recent : [row('No laundry orders yet.')]));
   byId('orders').replaceChildren(...(orders.length ? orders.map(order => {
     const who = customers.find(customer => customer.id === order.customer_id)?.name || 'Customer';
     const next = statuses[statuses.indexOf(order.status) + 1];
