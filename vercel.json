@@ -1,0 +1,4 @@
+{
+  "buildCommand": "node verify-staff-workspace.cjs staff-workspace.html --stage",
+  "outputDirectory": "dist"
+}
