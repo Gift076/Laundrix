@@ -226,4 +226,44 @@ window.addEventListener('beforeunload', event => {
 });
 login.addEventListener('submit', async event => {
   event.preventDefault();
-  const fields = Object.fromEntries([Truncated]
+  const fields = Object.fromEntries(new FormData(login));
+  login.reset();
+  login.querySelector('button').disabled = true;
+  try {
+    const session = await api('/auth/v1/token?grant_type=password',{method:'POST',body:fields});
+    accessToken = session.access_token;
+    const businesses = await api('/rest/v1/businesses?select=id,name&order=name.asc');
+    if (!businesses.length) throw new Error('No business assigned');
+    businessSelect.replaceChildren(...businesses.map(value => new Option(value.name, value.id)));
+    await openWorkspace(businesses[0]);
+    businessSelect.hidden = businesses.length < 2;
+    businessSelect.onchange = async () => {
+      if (pending || saving) return;
+      frame.hidden = true;
+      businessSelect.disabled = true;
+      try {await openWorkspace(businesses.find(value => value.id === businessSelect.value));}
+      catch {frame.hidden = false;businessSelect.value = activeBusiness.id;status('Could not open that business.');}
+      finally {businessSelect.disabled = false;}
+    };
+  } catch (error) {
+    accessToken = '';
+    status(error.code === 400 ? 'Sign-in failed. Check your email and password.' : 'Could not open your Laundrix workspace. Check your connection or staff assignment.');
+  } finally {
+    login.querySelector('button').disabled = false;
+  }
+});
+signOut.addEventListener('click', async () => {
+  if (pending || saving) return;
+  try {await api('/auth/v1/logout?scope=local',{method:'POST'});} catch {}
+  accessToken = '';
+  activeBusiness = undefined;
+  frameChannel = undefined;
+  frame.srcdoc = '';
+  frame.hidden = businessSelect.hidden = signOut.hidden = true;
+  login.hidden = false;
+  status('Signed out.');
+});
+
+</script>
+</body>
+</html>
