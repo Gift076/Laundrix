@@ -76,6 +76,62 @@ let pending;
 // Keep queued work in the signed-in tab. This pilot does not cache customer data on disk.
 const offlinePilot = true;
 let unconfirmedSave;
+const offlineBudget = 500 * 1024 * 1024;
+let signedInUser;
+let pilotLock;
+let localWrites = Promise.resolve();
+const offlineDatabase = offlinePilot ? new Promise((resolve, reject) => {
+  const request = indexedDB.open('laundrix-offline-pilot', 1);
+  request.onupgradeneeded = () => request.result.createObjectStore('queue');
+  request.onsuccess = () => resolve(request.result);
+  request.onerror = () => reject(request.error);
+  request.onblocked = () => reject(new Error('Local storage is busy.'));
+}) : null;
+offlineDatabase?.catch(() => {});
+
+async function holdPilotTill() {
+  if (pilotLock) return;
+  if (!navigator.locks) throw new Error('This browser cannot safely lock the offline till.');
+  await new Promise((resolve,reject) => {
+    navigator.locks.request('laundrix-offline-pilot-till',{ifAvailable:true},async lock => {
+      if (!lock) {reject(new Error('The offline pilot is already open in another tab.'));return;}
+      await new Promise(release => {pilotLock=release;resolve();});
+    }).catch(reject);
+  });
+}
+
+async function loadOfflineDraft() {
+  const database = await offlineDatabase;
+  return new Promise((resolve,reject) => {
+    const request = database.transaction('queue').objectStore('queue').get('pending');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function checkpointOfflineDraft() {
+  const draft = pending ? {user:signedInUser,shop:activeBusiness.id,revision,pending,unconfirmedSave} : null;
+  const write = localWrites.catch(() => {}).then(async () => {
+    const database=await offlineDatabase;
+    if(draft && new Blob([JSON.stringify(draft)]).size > offlineBudget) throw new Error('Offline storage limit reached.');
+    await new Promise((resolve,reject) => {
+      const transaction=database.transaction('queue','readwrite');
+      const queue=transaction.objectStore('queue');
+      if(draft) queue.put(draft,'pending');
+      else queue.delete('pending');
+      transaction.oncomplete=resolve;
+      transaction.onabort=()=>reject(transaction.error || new Error('Local storage write aborted.'));
+    });
+  });
+  localWrites=write;
+  return write;
+}
+
+function localSaveWarning() {
+  status('Could not save this change on this device. Keep this tab open and reconnect to save online.');
+  retry.hidden=false;
+}
+
 let saving = false;
 let conflict = false;
 let frameChannel;
@@ -134,9 +190,15 @@ async function initialRecords(business) {
 async function openWorkspace(business) {
   const records = await api('/rest/v1/staff_workspaces?select=revision,state&business_id=eq.' + encodeURIComponent(business.id));
   const saved = records[0];
-  const values = saved?.state || await initialRecords(business);
+  const draft = offlinePilot ? await loadOfflineDraft() : null;
+  if (draft && (draft.user !== signedInUser || draft.shop !== business.id)) {
+    throw new Error('This device has unsynced work for a different sign-in or shop. Open that shop on this device first.');
+  }
+  const values = draft?.pending || saved?.state || await initialRecords(business);
   activeBusiness = business;
-  revision = saved?.revision || 0;
+  revision = draft?.revision ?? saved?.revision ?? 0;
+  pending = draft?.pending;
+  unconfirmedSave = draft?.unconfirmedSave;
   conflict = false;
   const encoded = JSON.stringify(values).replaceAll('<','\\u003c');
   frameChannel = crypto.randomUUID();
@@ -146,12 +208,18 @@ async function openWorkspace(business) {
   login.hidden = true;
   signOut.hidden = false;
   status('');
+  if(draft) {
+    status('Restored unsynced work from this device.');
+    void flush();
+  }
 }
 
 async function flush() {
   if (saving || !pending || conflict) return;
   if (offlinePilot && navigator.onLine === false) {
-    status('Offline. Changes are waiting in this tab. Keep it open until saved online.');
+    status('Offline. Waiting to sync.');
+    try {await checkpointOfflineDraft();}
+    catch {localSaveWarning();}
     businessSelect.disabled = signOut.disabled = true;
     retry.hidden = false;
     return;
@@ -179,7 +247,10 @@ async function flush() {
       }
       const state = pending;
       const next = revision + 1;
-      if (offlinePilot) unconfirmedSave = {state, revision:next};
+      if (offlinePilot) {
+        unconfirmedSave = {state, revision:next};
+        try {await checkpointOfflineDraft();} catch {localSaveWarning();}
+      }
       status('Saving to Laundrix…');
       const path = '/rest/v1/staff_workspaces';
       const result = await api(
@@ -192,12 +263,21 @@ async function flush() {
       revision = next;
       if (pending === state) pending = undefined;
     }
-    status('Saved online.');
+    if (offlinePilot) {
+      try {await checkpointOfflineDraft();}
+      catch {
+        status('Saved online. Local cleanup will be retried on next sign-in.');
+        return;
+      }
+    }
+    if (!pending) status('Saved online.');
   } catch (error) {
     if (error.code === 409) {
       unconfirmedSave = undefined;
       conflict = true;
-      status('Another session changed this workspace. Your latest changes were not saved. Reopen the page to load the online copy.');
+      status(offlinePilot
+        ? 'Another till changed this shop. Local changes are retained and need reconciliation before syncing.'
+        : 'Another session changed this workspace. Your latest changes were not saved. Reopen the page to load the online copy.');
     } else {
       status(offlinePilot
         ? 'Waiting to sync. Keep this tab open. Laundrix retries when your device comes back online.'
@@ -206,6 +286,7 @@ async function flush() {
     }
   } finally {
     saving = false;
+    if (offlinePilot && pending && !conflict && retry.hidden && navigator.onLine !== false) queueMicrotask(flush);
     businessSelect.disabled = Boolean(pending);
     signOut.disabled = Boolean(pending);
   }
@@ -279,13 +360,19 @@ window.addEventListener('message', event => {
   const permitted = Object.fromEntries(Object.entries(values).filter(([key,value]) =>
     ['laundrypro_demo','laundrypro_theme','laundrypro_custom_theme_v1','laundrypro_invoice_template_v1'].includes(key) && typeof value === 'string'));
   pending = permitted;
+  if(offlinePilot){
+    status('Saving changes on this device…');
+    checkpointOfflineDraft().then(()=>{
+      if (navigator.onLine === false && pending === permitted) status('Saved on this device. Waiting to sync.');
+    }).catch(localSaveWarning);
+  }
   flush();
 });
 retry.addEventListener('click', flush);
 if (offlinePilot) {
   window.addEventListener('online', flush);
   window.addEventListener('offline', () => {
-    if (activeBusiness && !conflict) status('Offline. Keep this tab open to continue working and sync after reconnecting.');
+    if (activeBusiness && !conflict) status('Offline. Changes can be queued on this device.');
   });
 }
 window.addEventListener('beforeunload', event => {
@@ -426,11 +513,17 @@ login.addEventListener('submit', async event => {
   try {
     const session = await api('/auth/v1/token?grant_type=password',{method:'POST',body:fields});
     accessToken = session.access_token;
+    signedInUser = session.user.id;
     const businesses = await api('/rest/v1/businesses?select=id,name&order=name.asc');
     if(ownerMode)return await openOwner(businesses,session.user.id);
     if (!businesses.length) throw new Error('No business assigned');
     businessSelect.replaceChildren(...businesses.map(value => new Option(value.name, value.id)));
-    await openWorkspace(businesses[0]);
+    if(offlinePilot)await holdPilotTill();
+    const draft = offlinePilot ? await loadOfflineDraft() : null;
+    const startingShop = draft?.user === signedInUser ? businesses.find(shop=>shop.id===draft.shop) : businesses[0];
+    if(!startingShop)throw new Error('The shop with unsynced work is unavailable to this sign-in.');
+    businessSelect.value = startingShop.id;
+    await openWorkspace(startingShop);
     businessSelect.hidden = businesses.length < 2;
     businessSelect.onchange = async () => {
       if (pending || saving) return;
@@ -442,7 +535,9 @@ login.addEventListener('submit', async event => {
     };
   } catch (error) {
     accessToken = '';
-    status(error.message === 'Owner access required' ? 'This login has no owner access.' : error.code === 400 ? 'Sign-in failed. Check your email and password.' : 'Could not open your Laundrix workspace. Check your connection or staff assignment.');
+    pilotLock?.();
+    pilotLock=undefined;
+    status(offlinePilot && /offline till|offline pilot|unsynced work/.test(error.message) ? error.message : error.message === 'Owner access required' ? 'This login has no owner access.' : error.code === 400 ? 'Sign-in failed. Check your email and password.' : 'Could not open your Laundrix workspace. Check your connection or staff assignment.');
   } finally {
     login.querySelector('button').disabled = false;
   }
@@ -453,6 +548,9 @@ signOut.addEventListener('click', async () => {
   accessToken = '';
   activeBusiness = undefined;
   frameChannel = undefined;
+  pilotLock?.();
+  pilotLock=undefined;
+  signedInUser=undefined;
   employeeLoad++;
   employeeSelection=undefined;
   employeeList.replaceChildren();
