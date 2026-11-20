@@ -5,12 +5,27 @@
 <style>
 :root{color-scheme:dark}body{margin:0;background:#11100e;color:#fff5e6;font:16px system-ui}header{display:flex;align-items:center;gap:14px;padding:12px 20px;background:#1b1813;flex-wrap:wrap}header strong{color:#e8bd65;margin-right:auto}main{padding:16px}form{max-width:400px;margin:10vh auto;display:grid;gap:14px;padding:24px;background:#211c15;border-radius:14px}label{display:grid;gap:6px}input,button,select{padding:9px;border:1px solid #6c593c;border-radius:7px;font:inherit}button{background:#e8bd65;color:#231a0e;font-weight:700;cursor:pointer}iframe{border:0;width:100%;height:calc(100dvh - 78px);background:#fff}p[role=status]{margin:0;padding:0 20px}p[role=status]:not(:empty){padding-block:8px}dialog{width:min(510px,calc(100% - 46px));border:1px solid #6c593c;border-radius:12px;background:#211c15;color:#fff5e6}dialog::backdrop{background:#0009}dialog p{white-space:pre-wrap;overflow-wrap:anywhere}#draftPreview{max-height:36vh;overflow:auto}dialog a{color:#e8bd65;margin-right:14px}[hidden]{display:none!important}
 #ownerView{max-width:960px;margin:auto}#ownerView label{display:inline-flex;align-items:center;gap:8px;margin:4px 12px 4px 0}#ownerResults{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}#ownerResults article{background:#211c15;border:1px solid #694f27;border-radius:12px;padding:16px}#ownerResults h3{color:#e8bd65;margin:0}#ownerResults p{margin:10px 0}
+[hidden]{display:none!important}#recoveryRequest{margin:0}
 </style>
 
 
 <header><strong>Laundrix Staff</strong><select id="businessSelect" aria-label="Business" hidden=""></select><button id="retry" hidden="">Retry save</button><button id="signOut" hidden="">Sign out</button></header>
 <p id="status" role="status"></p>
-<form id="login"><h1>Staff sign-in</h1><label>Email<input type="email" name="email" autocomplete="username" required=""></label><label>Password<input type="password" name="password" autocomplete="current-password" required=""></label><button>Sign in</button><a id="workspaceMode" href="?view=owner">Owner sign-in</a></form>
+<form id="login"><h1>Staff sign-in</h1><label>Email<input type="email" name="email" autocomplete="username" required=""></label><label>Password<input type="password" name="password" autocomplete="current-password" required=""></label><button>Sign in</button><button type="button" id="forgotPassword">Forgot password?</button><a id="workspaceMode" href="?view=owner">Owner sign-in</a></form>
+<dialog id="recoveryDialog" aria-labelledby="recoveryTitle">
+<form id="recoveryRequest">
+<h2 id="recoveryTitle">Reset your password</h2>
+<label>Registered email <input name="email" type="email" autocomplete="email" required></label>
+<button id="requestReset">Send reset link</button>
+<button id="closeRecovery" type="button">Close</button>
+<p id="recoveryNotice" role="status"></p>
+</form></dialog>
+<form id="recoveryNew" hidden>
+<h1>Choose a new password</h1>
+<label>New password <input name="password" type="password" minlength="12" autocomplete="new-password" required></label>
+<label>Repeat new password <input name="confirmPassword" type="password" minlength="12" autocomplete="new-password" required></label>
+<button id="saveReset">Change password</button>
+</form>
 <main id="ownerView" hidden>
 <h1>Owner View</h1><label>Shop <select id="ownerShop"></select></label>
 <label>Business date <input id="ownerDate" type="date"></label>
@@ -402,6 +417,85 @@ signOut.addEventListener('click', async () => {
   status('Signed out.');
 });
 
+const recoveryRequest = el('recoveryRequest');
+const recoveryNew = el('recoveryNew');
+const recoveryKey = 'laundrix-recovery-verifier';
+const recoveryUrl = location.origin + location.pathname + '?recovery=1';
+let recoveryToken = '';
+
+el('forgotPassword').addEventListener('click', () => {
+  recoveryRequest.elements.email.value = login.elements.email.value;
+  el('recoveryDialog').showModal();
+});
+el('closeRecovery').addEventListener('click', () => el('recoveryDialog').close());
+recoveryRequest.addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = el('requestReset');
+  button.disabled = true;
+  try {
+    const verifier = Array.from(crypto.getRandomValues(new Uint8Array(32)), byte => byte.toString(16).padStart(2,'0')).join('');
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier));
+    const challenge = btoa(String.fromCharCode(...new Uint8Array(digest))).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+    localStorage.setItem(recoveryKey,JSON.stringify({verifier,expires:Date.now()+3600000}));
+    await api('/auth/v1/recover?redirect_to='+encodeURIComponent(recoveryUrl), {
+      method:'POST',body:{email:recoveryRequest.elements.email.value.trim(),code_challenge:challenge,code_challenge_method:'s256'}
+    });
+  } catch {
+    // Use the same response for unknown accounts and provider rejections.
+  } finally {
+    button.disabled = false;
+    el('recoveryNotice').textContent='If your account can receive a reset email, a link will arrive shortly. Open it in this same browser. Check spam if it does not arrive.';
+  }
+});
+async function startRecovery() {
+  const params=new URLSearchParams(location.search);
+  if(params.get('recovery')!=='1')return;
+  login.hidden=true;
+  history.replaceState(null,'',location.pathname);
+  try {
+    const saved=JSON.parse(localStorage.getItem(recoveryKey)||'null');
+    if(!params.get('code')||!saved||saved.expires<Date.now())throw new Error('Invalid recovery request');
+    const session=await api('/auth/v1/token?grant_type=pkce',{
+      method:'POST',body:{auth_code:params.get('code'),code_verifier:saved.verifier}
+    });
+    localStorage.removeItem(recoveryKey);
+    recoveryToken=session.access_token;
+    if(!recoveryToken)throw new Error('Missing recovery session');
+    recoveryNew.hidden=false;
+    recoveryNew.elements.password.focus();
+  } catch {
+    status('This reset link could not be opened. Request a new link and open it in the same browser.');
+    login.hidden=false;
+  }
+}
+recoveryNew.addEventListener('submit',async event=>{
+  event.preventDefault();
+  if(!recoveryToken)return;
+  const password=recoveryNew.elements.password.value;
+  if(password!==recoveryNew.elements.confirmPassword.value){
+    status('The passwords do not match.');
+    return;
+  }
+  const button=el('saveReset');
+  button.disabled=true;
+  accessToken=recoveryToken;
+  try {
+    await api('/auth/v1/user',{method:'PUT',body:{password}});
+    let signedOut=true;
+    try {await api('/auth/v1/logout?scope=global',{method:'POST'});} catch {signedOut=false;}
+    recoveryToken='';
+    recoveryNew.reset();
+    recoveryNew.hidden=true;
+    login.hidden=false;
+    status(signedOut?'Password changed. Sign in with your new password.':'Password changed. Sign in again. We could not confirm sign-out on other devices.');
+  } catch {
+    status('Could not change the password. Try a different password or request a new reset link.');
+  } finally {
+    accessToken='';
+    button.disabled=false;
+  }
+});
+startRecovery();
 </script>
 
 
