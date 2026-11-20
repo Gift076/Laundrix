@@ -22,7 +22,7 @@
 #ownerView{max-width:960px;margin:auto}#ownerView label{display:inline-flex;align-items:center;gap:8px;margin:4px 12px 4px 0}#ownerResults{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}#ownerResults article{background:#211c15;border:1px solid #694f27;border-radius:12px;padding:16px}#ownerResults h3{color:#e8bd65;margin:0}#ownerResults p{margin:10px 0}
 [hidden]{display:none!important}#recoveryRequest{margin:0}
 #ownerEmployees{margin:22px 0;padding:16px;background:#211c15;border-radius:12px}#ownerEmployees summary{cursor:pointer;font-weight:700}#employeeList{padding:0;list-style:none}#employeeList li{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 0;overflow-wrap:anywhere}
-#ownerInstall{max-width:440px;margin:16px auto;padding:0 16px}#ownerInstall summary{cursor:pointer}#ownerInstall p{line-height:1.5}
+#ownerInstall{max-width:440px;margin:16px auto;padding:0 16px}#ownerInstall summary{cursor:pointer}#ownerInstall p,#ownerInstall li{line-height:1.5}#ownerInstall li+li{margin-top:6px}#ownerInstall h2{font-size:1.1rem}
 </style>
 
 
@@ -31,9 +31,24 @@
 <form id="login"><h1>Staff sign-in</h1><label>Email<input type="email" name="email" autocomplete="username" required=""></label><label>Password<input type="password" name="password" autocomplete="current-password" required=""></label><button>Sign in</button><button type="button" id="forgotPassword">Forgot password?</button><a id="workspaceMode" href="?view=owner">Owner sign-in</a></form>
 <aside id="ownerInstall" hidden>
 <button type="button" id="ownerInstallButton" hidden>Install Laundrix Owner</button>
-<details><summary>Add Laundrix Owner to your phone</summary>
-<p><strong>iPhone:</strong> In Safari, tap Share, then Add to Home Screen. Turn on Open as Web App if shown.</p>
-<p><strong>Android:</strong> In Chrome, open the menu and tap Add to home screen, then Install if shown.</p>
+<details><summary>How to put Laundrix on your phone</summary>
+<p>Open this page on the phone you want to use.</p>
+<h2>iPhone</h2>
+<ol>
+  <li>Open this page in <strong>Safari</strong>.</li>
+  <li>Tap <strong>Share</strong> (the square with an arrow pointing up).</li>
+  <li>Tap <strong>Add to Home Screen</strong>. If you see <strong>Open as Web App</strong>, turn it on.</li>
+  <li>Tap <strong>Add</strong>.</li>
+</ol>
+<h2>Android</h2>
+<ol>
+  <li>Open this page in <strong>Chrome</strong>.</li>
+  <li>Tap the <strong>three dots</strong> at the top.</li>
+  <li>Tap <strong>Add to home screen</strong>.</li>
+  <li>Tap <strong>Install</strong> or <strong>Add</strong>, whichever you see.</li>
+</ol>
+<p>Go to your phone’s home screen. Tap the <strong>Laundrix Owner</strong> icon. Sign in with your owner email and password.</p>
+<p>You can also sign in here in your browser whenever you like.</p>
 </details></aside>
 <dialog id="recoveryDialog" aria-labelledby="recoveryTitle">
 <form id="recoveryRequest">
@@ -403,6 +418,7 @@ if(ownerMode){
   const installHelp = el('ownerInstall');
   const installButton = el('ownerInstallButton');
   installHelp.hidden = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (location.hash === '#ownerInstall') installHelp.querySelector('details').open = true;
   let installPrompt;
   window.addEventListener('beforeinstallprompt', event => {
     event.preventDefault();
