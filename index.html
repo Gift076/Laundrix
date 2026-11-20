@@ -39,14 +39,54 @@
     .explainer video{display:block;width:100%;height:auto;aspect-ratio:16/9;border:1px solid var(--border);border-radius:14px;background:var(--panel)}
     @media(max-width:760px){.explainer{grid-template-columns:1fr}.watch-link{margin-left:0;display:block}}
     .plan-photo{display:block;width:100%;height:clamp(140px,16vw,190px);object-fit:cover;border-radius:9px;margin:0 0 15px}
+    .owner-preview{max-width:465px;width:100%;justify-self:center;box-shadow:0 22px 48px #0005}
+    .preview-heading,.preview-cash{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .preview-heading h2{margin:0;font-size:1.45rem}.preview-heading small{color:var(--gold)}
+    .preview-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:20px 0}
+    .preview-metrics div{background:var(--bg);padding:13px;border-radius:9px}.preview-metrics dt{font-size:.82rem;color:var(--muted)}
+    .preview-metrics dd{margin:3px 0 0;font-size:clamp(1rem,2vw,1.45rem);font-weight:750}
+    .preview-cash{border-top:1px solid var(--border);padding-top:12px;flex-wrap:wrap}.preview-cash strong{color:var(--gold)}
+    .owner-preview>p{font-size:.9rem;margin-bottom:0}
+    .demo-grid form{display:grid;gap:5px;margin-top:12px}.demo-grid input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px;border-radius:7px;font:inherit}
+    .demo-grid button{border:0;cursor:pointer;font:inherit;font-weight:750}.demo-grid button:disabled{opacity:.48;cursor:default}
+    .comparison{overflow-x:auto;margin-top:22px;border:1px solid var(--border);border-radius:12px}
+    .comparison table{width:100%;min-width:650px;border-collapse:collapse;background:var(--panel)}
+    .comparison caption{text-align:left;padding:12px 14px;color:var(--gold);font-weight:750}
+    .comparison td,.comparison th{text-align:left;padding:10px 14px;border-top:1px solid var(--border)}
+    @media(max-width:760px){.demo-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body id="top">
-  <header><div class="wrap"><a class="brand" href="#top" aria-label="Laundrix home">Laund<span>rix</span></a><nav aria-label="Main navigation"><a href="#explainer">Watch demo</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#availability">Availability</a><a href="#faq">FAQ</a><a href="/staff-workspace.html?view=owner">Owner login</a><a href="/staff-workspace.html">Staff login</a></nav></div></header>
+  <header><div class="wrap"><a class="brand" href="#top" aria-label="Laundrix home">Laund<span>rix</span></a><nav aria-label="Main navigation"><a href="#demo">Try the demo</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="#availability">Availability</a><a href="#faq">FAQ</a><a href="/staff-workspace.html?view=owner">Owner login</a><a href="/staff-workspace.html">Staff login</a></nav></div></header>
   <main class="wrap">
     <section class="hero" aria-labelledby="hero-title">
-      <div><p class="tagline">Smart Laundry. Smarter Business.</p><h1 id="hero-title">Run your laundromat from one workspace.</h1><p>Laundrix brings customer orders, payments, counter sales and stock together so you can see what’s in the shop, what’s ready and what’s still owing.</p><a class="button" href="/dashboard.html">Set up your business</a> <a class="watch-link" href="#explainer">Watch the 45-second explainer</a></div>
-      <aside class="workflow hero-story" aria-labelledby="workflow-title"><img class="hero-photo" src="/laundrix-owners.webp" width="1400" height="788" alt="Two laundromat owners talking across a laundry counter"><h2 id="workflow-title">From drop-off to collection</h2><ol><li><strong>Received</strong><span>Record the customer, services and price.</span></li><li><strong>Ready</strong><span>See which loads are ready for pickup.</span></li><li><strong>Collected</strong><span>Record collection and check the balance.</span></li></ol></aside>
+      <div><p class="tagline">Smart Laundry. Smarter Business.</p><h1 id="hero-title">Run your laundromat. Check your shop from your phone.</h1><p>Take orders, track deposits and cash up at the end of the day. With Owner View, you can check how your shop is doing even when you’re away.</p><a class="button" href="#demo">Try the demo</a> <a class="watch-link" href="#explainer">Watch the explainer</a></div>
+      <aside class="workflow owner-preview" aria-labelledby="owner-preview-title">
+  <div class="preview-heading"><div><h2 id="owner-preview-title">Owner View</h2><span>Alexandra shop</span></div><small>Sample data</small></div>
+  <dl class="preview-metrics"><div><dt>Payments received</dt><dd id="demo-owner-paid">R2,100.00</dd></div>
+  <div><dt>Ready for collection</dt><dd id="demo-owner-ready">5 orders</dd></div></dl>
+  <div class="preview-cash"><span>Closing cash-up</span><strong id="demo-owner-close">Waiting for closing count</strong></div>
+  <p>Today’s figures on your phone</p>
+</aside>
+    </section>
+    <section id="demo" class="section" aria-labelledby="demo-title">
+      <h2 id="demo-title">Try a day at the counter</h2>
+      <p>Use sample data to see how an order moves from drop-off to cash-up. The demo saves no shop records and sends no messages.</p>
+      <div class="grid demo-grid">
+        <article class="card"><h3>1. Take an order</h3><p>Sample order for two laundry loads, <strong>R150.00</strong>.</p>
+          <form id="demo-order"><label for="demo-deposit">Cash deposit (R)</label><input id="demo-deposit" type="number" min="0" max="150" step="0.01" value="50" required><button class="button" type="submit">Add sample order</button></form>
+          <p id="demo-balance" role="status">Outstanding balance appears here.</p>
+        </article>
+        <article class="card"><h3>2. Get it ready</h3><p>Mark the laundry ready. In the staff workspace, you can then open a WhatsApp notice for the customer.</p>
+          <button id="demo-ready" class="button" type="button" disabled>Mark ready</button>
+          <p id="demo-order-status" role="status">Add the sample order first.</p>
+        </article>
+        <article class="card"><h3>3. Cash up</h3><p id="demo-expected">Expected cash at closing appears after you add the order.</p>
+          <form id="demo-cashup"><label for="demo-counted">Cash counted (R)</label><input id="demo-counted" type="number" min="0" max="1000000" step="0.01" value="900" required><button id="demo-close" class="button" disabled>Compare totals</button></form>
+          <p id="demo-result" role="status"></p>
+        </article>
+      </div>
+      <p><a href="#owner-preview-title">See the updated Owner View</a></p>
     </section>
     <section id="explainer" class="section explainer" aria-labelledby="explainer-title">
       <div><h2 id="explainer-title">See Laundrix in action</h2><p>One laundromat owner shows another how to track orders and deposits, notify customers on WhatsApp, and keep an eye on sales and stock.</p></div>
@@ -68,7 +108,7 @@
       <h2 id="pricing-title">Laundrix plans</h2>
       <p class="pricing-intro">Unlimited laundry orders on every plan. A 15-day free trial is planned when public sign-ups open.</p>
       <div class="plans"><article class="card plan"><img class="plan-photo" src="/plan-starter.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="A neighbourhood laundromat storefront"><h3>Starter</h3><p class="plan-price"><strong>R249</strong> <span>/ month</span></p><p class="plan-capacity">1 branch · 2 staff accounts</p><ul><li>Laundry orders and customer history</li><li>Deposits, balances and combined invoices</li><li>Individual WhatsApp laundry-ready notices</li></ul></article><article class="card plan plan-featured"><img class="plan-photo" src="/plan-business.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="Folded towels and washing machines inside a laundromat"><h3>Business</h3><p class="plan-price"><strong>R449</strong> <span>/ month</span></p><p class="plan-capacity">1 branch · 5 staff accounts</p><ul><li>Everything in Starter</li><li>Point of sale, stock and supply deductions</li><li>Daily, weekly, monthly and custom reports</li><li>Marketing & Broadcasts for one branch†</li></ul></article><article class="card plan"><img class="plan-photo" src="/plan-growth.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="Two laundromat storefronts"><h3>Growth</h3><p class="plan-price"><strong>R799</strong> <span>/ month</span></p><p class="plan-capacity">Up to 2 branches · 10 staff accounts</p><ul><li>Everything in Business</li><li>Combined owner dashboard and branch comparisons†</li><li>Broadcast to one or both branches†</li></ul></article><article class="card plan"><img class="plan-photo" src="/plan-multi-branch.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="Laundromat storefronts in a shopping district"><h3>Multi-Branch</h3><p class="plan-price"><strong>R1,499</strong> <span>/ month</span></p><p class="plan-capacity">3–5 branches · 25 staff accounts</p><ul><li>Everything in Growth</li><li>Branch manager access and branch-level reports†</li><li>Broadcast to selected branches, with owner approval and campaign history†</li></ul></article><article class="card plan"><img class="plan-photo" src="/plan-enterprise.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="A larger laundromat in a retail centre"><h3>Enterprise</h3><p class="plan-price"><strong>R2,499</strong> <span>/ month</span></p><p class="plan-capacity">6–10 branches · 50 staff accounts</p><ul><li>Everything in Multi-Branch</li><li>Regional access, consolidated exports and priority onboarding†</li><li>Regional broadcasts, approvals and campaign reporting†</li></ul></article></div>
-      <p class="pricing-note">† Planned features. Marketing &amp; Broadcasts covers WhatsApp and email promotions and shop updates, including holiday hours and closure notices. Drafts and customer preferences are available in the pilot. Sending and scheduling depend on provider setup. WhatsApp campaign usage charges would be separate.</p>
+      <div class="comparison" tabindex="0" role="region" aria-label="Plan comparison"><table><caption>Compare plan benefits</caption><thead><tr><th scope="col">Feature</th><th scope="col">Starter</th><th scope="col">Business</th><th scope="col">Growth</th><th scope="col">Multi-Branch</th><th scope="col">Enterprise</th></tr></thead><tbody><tr><th scope="row">Branches</th><td>1</td><td>1</td><td>Up to 2</td><td>3–5</td><td>6–10</td></tr><tr><th scope="row">Staff account limit</th><td>2</td><td>5</td><td>10</td><td>25</td><td>50</td></tr><tr><th scope="row">Counter POS and stock</th><td>—</td><td>Included</td><td>Included</td><td>Included</td><td>Included</td></tr><tr><th scope="row">Business reports</th><td>—</td><td>Included</td><td>Included</td><td>Included</td><td>Included</td></tr><tr><th scope="row">Automated broadcasts</th><td>—</td><td>Planned</td><td>Planned</td><td>Planned</td><td>Planned</td></tr></tbody></table></div><p class="pricing-note">† Planned features. Marketing &amp; Broadcasts covers WhatsApp and email promotions and shop updates, including holiday hours and closure notices. Drafts and customer preferences are available in the pilot. Sending and scheduling depend on provider setup. WhatsApp campaign usage charges would be separate. Offline mode is in a separate pilot.</p>
     </section>
     <section id="availability" class="availability" aria-labelledby="availability-title"><h2 id="availability-title">Private pilot in development</h2><p>GM Developers is preparing the first Laundrix pilot for Lukhanyo’s Laundromat. The pilot focuses on staff sign-in, customer records and laundry orders. New businesses will get a 15-day free trial when public sign-ups open.</p><p><a href="/dashboard.html">Try the business setup demo</a> with a sample name and optional logo. Your setup stays in this browser.</p></section>
     <section id="faq" class="section" aria-labelledby="faq-title"><h2 id="faq-title">Frequently asked questions</h2>
@@ -79,5 +119,39 @@
     </section>
   </main>
   <footer><div class="wrap"><span>© 2026 Laundrix · Developed by GM Developers</span><a href="#top">Back to top</a></div></footer>
+<script>
+  const paid = document.getElementById('demo-owner-paid');
+  const ready = document.getElementById('demo-owner-ready');
+  const closing = document.getElementById('demo-owner-close');
+  const markReady = document.getElementById('demo-ready');
+  const closeTill = document.getElementById('demo-close');
+  const money = cents => 'R' + (cents / 100).toLocaleString('en-ZA', {minimumFractionDigits:2, maximumFractionDigits:2});
+  let expectedCash = 85000;
+  document.getElementById('demo-order').addEventListener('submit', event => {
+    event.preventDefault();
+    const deposit = Math.round(document.getElementById('demo-deposit').valueAsNumber * 100);
+    expectedCash = 85000 + deposit;
+    paid.textContent = money(210000 + deposit);
+    ready.textContent = '5 orders';
+    closing.textContent = 'Waiting for closing count';
+    document.getElementById('demo-balance').textContent = 'Deposit ' + money(deposit) + ' · Balance ' + money(15000 - deposit);
+    document.getElementById('demo-order-status').textContent = 'Sample order added.';
+    document.getElementById('demo-expected').textContent = 'Expected cash ' + money(expectedCash);
+    document.getElementById('demo-result').textContent = '';
+    markReady.disabled = closeTill.disabled = false;
+  });
+  markReady.addEventListener('click', () => {
+    ready.textContent = '6 orders';
+    document.getElementById('demo-order-status').textContent = 'Ready for collection. No message was sent.';
+    markReady.disabled = true;
+  });
+  document.getElementById('demo-cashup').addEventListener('submit', event => {
+    event.preventDefault();
+    const difference = Math.round(document.getElementById('demo-counted').valueAsNumber * 100) - expectedCash;
+    const label = difference ? money(Math.abs(difference)) + (difference < 0 ? ' short' : ' over') : 'Balanced';
+    closing.textContent = label;
+    document.getElementById('demo-result').textContent = 'Closing cash-up · ' + label;
+  });
+</script>
 </body>
 </html>
