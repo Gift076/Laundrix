@@ -61,13 +61,24 @@
   .till-setup li+li{margin-top:6px}
   .till-note{font-size:.9rem}
   @media(max-width:680px){.till-setup{grid-template-columns:1fr}}
+
+  .ask-panel{padding:clamp(20px,4vw,36px);margin-bottom:28px}
+  .ask-panel h2{margin-bottom:8px}
+  .ask-prompts,.ask-form>div{display:flex;flex-wrap:wrap;gap:10px}
+  .ask-prompts{margin:18px 0}
+  .ask-prompts button{background:transparent;color:var(--gold);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font:inherit;cursor:pointer}
+  .ask-prompts button:hover{border-color:var(--gold)}
+  .ask-form input{flex:1 1 16rem;min-width:0;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:transparent;color:inherit;font:inherit}
+  .ask-form label{display:block;margin-bottom:6px;font-weight:700}
+  .ask-form .button{border:0;font:inherit;font-weight:760;cursor:pointer;margin:0}
+  .ask-answer:not(:empty){margin-top:18px;padding:12px 16px;border-inline-start:3px solid var(--gold);background:#211c14;color:inherit}
 </style>
 </head>
 <body id="top">
-  <header><div class="wrap"><a class="brand" href="#top" aria-label="Laundrix home">Laund<span>rix</span></a><nav aria-label="Main navigation"><a href="#demo">Try the demo</a><a href="#features">Features</a><a href="#devices">Devices</a><a href="#pricing">Pricing</a><a href="#availability">Availability</a><a href="#faq">FAQ</a><a href="/staff-workspace.html?view=owner">Owner login</a><a href="/staff-workspace.html">Staff login</a></nav></div></header>
+  <header><div class="wrap"><a class="brand" href="#top" aria-label="Laundrix home">Laund<span>rix</span></a><nav aria-label="Main navigation"><a href="#demo">Try the demo</a><a href="#features">Features</a><a href="#devices">Devices</a><a href="#pricing">Pricing</a><a href="#ask">Ask Laundrix</a><a href="/staff-workspace.html?view=owner">Owner login</a><a href="/staff-workspace.html">Staff login</a></nav></div></header>
   <main class="wrap">
     <section class="hero" aria-labelledby="hero-title">
-      <div><p class="tagline">Smart Laundry. Smarter Business.</p><h1 id="hero-title">Run your laundromat. Check your shop from your phone.</h1><p>Take orders, track deposits and cash up at the end of the day. With Owner View, you can check how your shop is doing even when you’re away.</p><a class="button" href="#demo">Try the demo</a> <a class="watch-link" href="#explainer">Watch the explainer</a></div>
+      <div><p class="tagline">Smart Laundry. Smarter Business.</p><h1 id="hero-title">Run your laundromat. Check your shop from your phone.</h1><p>Take orders, track deposits and cash up at the end of the day. With Owner View, you can check how your shop is doing even when you’re away.</p><a class="button" href="#demo">Try the demo</a> <a class="watch-link" href="#pricing">Compare plans</a> <a class="watch-link" href="#explainer">Watch the explainer</a></div>
       <aside class="workflow owner-preview" aria-labelledby="owner-preview-title">
   <div class="preview-heading"><div><h2 id="owner-preview-title">Owner View</h2><span>Alexandra shop</span></div><small>Sample data</small></div>
   <dl class="preview-metrics"><div><dt>Payments received</dt><dd id="demo-owner-paid">R2,100.00</dd></div>
@@ -129,6 +140,7 @@
             <li><strong>Barcode scanner</strong> for scanning drinks, snacks and other products.</li>
             <li><strong>Fingerprint reader</strong> for staff sign-in on compatible devices.</li>
           </ul>
+          <p>Already have a computer? A counter kit pairs a receipt printer, barcode scanner and cash drawer with your existing machine.</p>
           <p class="till-note">Example setup. Hardware compatibility and fingerprint sign-in still need testing.</p>
         </div>
       </article>
@@ -138,10 +150,26 @@
       <p class="pricing-preview">Pricing preview</p>
       <h2 id="pricing-title">Laundrix plans</h2>
       <p class="pricing-intro">Unlimited laundry orders on every plan. A 15-day free trial is planned when public sign-ups open.</p>
+      <p><a href="#plan-comparison">Jump to the plan comparison</a></p>
       <div class="plans"><article class="card plan"><img class="plan-photo" src="/plan-starter.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="A neighbourhood laundromat storefront"><h3>Starter</h3><p class="plan-price"><strong>R249</strong> <span>/ month</span></p><p class="plan-capacity">1 branch · 2 staff accounts</p><ul><li>Laundry orders and customer history</li><li>Deposits, balances and combined invoices</li><li>Individual WhatsApp laundry-ready notices</li></ul></article><article class="card plan plan-featured"><img class="plan-photo" src="/plan-business.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="Folded towels and washing machines inside a laundromat"><h3>Business</h3><p class="plan-price"><strong>R449</strong> <span>/ month</span></p><p class="plan-capacity">1 branch · 5 staff accounts</p><ul><li>Everything in Starter</li><li>Point of sale, stock and supply deductions</li><li>Daily, weekly, monthly and custom reports</li><li>Marketing & Broadcasts for one branch†</li></ul></article><article class="card plan"><img class="plan-photo" src="/plan-growth.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="Two laundromat storefronts"><h3>Growth</h3><p class="plan-price"><strong>R799</strong> <span>/ month</span></p><p class="plan-capacity">Up to 2 branches · 10 staff accounts</p><ul><li>Everything in Business</li><li>Combined owner dashboard and branch comparisons†</li><li>Broadcast to one or both branches†</li></ul></article><article class="card plan"><img class="plan-photo" src="/plan-multi-branch.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="Laundromat storefronts in a shopping district"><h3>Multi-Branch</h3><p class="plan-price"><strong>R1,499</strong> <span>/ month</span></p><p class="plan-capacity">3–5 branches · 25 staff accounts</p><ul><li>Everything in Growth</li><li>Branch manager access and branch-level reports†</li><li>Broadcast to selected branches, with owner approval and campaign history†</li></ul></article><article class="card plan"><img class="plan-photo" src="/plan-enterprise.webp?v=3" width="504" height="300" loading="lazy" decoding="async" alt="A larger laundromat in a retail centre"><h3>Enterprise</h3><p class="plan-price"><strong>R2,499</strong> <span>/ month</span></p><p class="plan-capacity">6–10 branches · 50 staff accounts</p><ul><li>Everything in Multi-Branch</li><li>Regional access, consolidated exports and priority onboarding†</li><li>Regional broadcasts, approvals and campaign reporting†</li></ul></article></div>
-      <div class="comparison" tabindex="0" role="region" aria-label="Plan comparison"><table><caption>Compare plan benefits</caption><thead><tr><th scope="col">Feature</th><th scope="col">Starter</th><th scope="col">Business</th><th scope="col">Growth</th><th scope="col">Multi-Branch</th><th scope="col">Enterprise</th></tr></thead><tbody><tr><th scope="row">Branches</th><td>1</td><td>1</td><td>Up to 2</td><td>3–5</td><td>6–10</td></tr><tr><th scope="row">Staff account limit</th><td>2</td><td>5</td><td>10</td><td>25</td><td>50</td></tr><tr><th scope="row">Counter POS and stock</th><td>—</td><td>Included</td><td>Included</td><td>Included</td><td>Included</td></tr><tr><th scope="row">Business reports</th><td>—</td><td>Included</td><td>Included</td><td>Included</td><td>Included</td></tr><tr><th scope="row">Automated broadcasts</th><td>—</td><td>Planned</td><td>Planned</td><td>Planned</td><td>Planned</td></tr></tbody></table></div><p class="pricing-note">† Planned features. Marketing &amp; Broadcasts covers WhatsApp and email promotions and shop updates, including holiday hours and closure notices. Drafts and customer preferences are available in the pilot. Sending and scheduling depend on provider setup. WhatsApp campaign usage charges would be separate. Offline mode is in a separate pilot.</p>
+      <div id="plan-comparison" class="comparison" tabindex="0" role="region" aria-label="Plan comparison"><table><caption>Compare plan benefits</caption><thead><tr><th scope="col">Feature</th><th scope="col">Starter</th><th scope="col">Business</th><th scope="col">Growth</th><th scope="col">Multi-Branch</th><th scope="col">Enterprise</th></tr></thead><tbody><tr><th scope="row">Branches</th><td>1</td><td>1</td><td>Up to 2</td><td>3–5</td><td>6–10</td></tr><tr><th scope="row">Staff account limit</th><td>2</td><td>5</td><td>10</td><td>25</td><td>50</td></tr><tr><th scope="row">Counter POS and stock</th><td>—</td><td>Included</td><td>Included</td><td>Included</td><td>Included</td></tr><tr><th scope="row">Business reports</th><td>—</td><td>Included</td><td>Included</td><td>Included</td><td>Included</td></tr><tr><th scope="row">Automated broadcasts</th><td>—</td><td>Planned</td><td>Planned</td><td>Planned</td><td>Planned</td></tr></tbody></table></div><p class="pricing-note">† Planned features. Marketing &amp; Broadcasts covers WhatsApp and email promotions and shop updates, including holiday hours and closure notices. Drafts and customer preferences are available in the pilot. Sending and scheduling depend on provider setup. WhatsApp campaign usage charges would be separate. Offline mode is in a separate pilot.</p>
     </section>
     <section id="availability" class="availability" aria-labelledby="availability-title"><h2 id="availability-title">Private pilot in development</h2><p>GM Developers is preparing the first Laundrix pilot for Lukhanyo’s Laundromat. The pilot focuses on staff sign-in, customer records and laundry orders. New businesses will get a 15-day free trial when public sign-ups open.</p><p><a href="/dashboard.html">Try the business setup demo</a> with a sample name and optional logo. Your setup stays in this browser.</p></section>
+    <section id="ask" class="section card ask-panel" aria-labelledby="ask-title" hidden>
+      <h2 id="ask-title">Ask Laundrix</h2>
+      <p>Get an instant answer about the software, plans or equipment.</p>
+      <div class="ask-prompts" aria-label="Suggested questions">
+        <button type="button" data-topic="pricing">How much does it cost?</button>
+        <button type="button" data-topic="trial">Is there a free trial?</button>
+        <button type="button" data-topic="hardware">What equipment do I need?</button>
+        <button type="button" data-topic="owner">Can I check sales on my phone?</button>
+      </div>
+      <form class="ask-form">
+        <label for="ask-question">Your question</label>
+        <div><input id="ask-question" maxlength="250" required placeholder="For example, can I use it at two branches?" autocomplete="off"><button class="button" type="submit">Get answer</button></div>
+      </form>
+      <div class="ask-answer" role="status" aria-live="polite" aria-atomic="true"></div>
+    </section>
     <section id="faq" class="section" aria-labelledby="faq-title"><h2 id="faq-title">Frequently asked questions</h2>
       <details><summary>Can I sign up for Laundrix?</summary><p>Public sign-ups are currently closed while the private pilot is being developed. You can <a href="/dashboard.html">try the interactive demo</a> with fictional records.</p></details>
       <details><summary>How long is the free trial?</summary><p>The free trial will last 15 days once public sign-ups open. You can explore the demo today.</p></details>
@@ -183,6 +211,49 @@
     closing.textContent = label;
     document.getElementById('demo-result').textContent = 'Closing cash-up · ' + label;
   });
+
+  {
+    const panel = document.getElementById('ask');
+    const question = panel.querySelector('input');
+    const answer = panel.querySelector('.ask-answer');
+    const pricing = Array.from(document.querySelectorAll('.plan'), plan =>
+      plan.querySelector('h3').textContent + ' ' + plan.querySelector('.plan-price strong').textContent).join(', ');
+    const topics = {
+      trial: [/\b(trial|15 days?|free)\b/i, 'A 15-day free trial is planned when public sign-ups open. You can try the demo today with sample data.', '#demo', 'Try the demo'],
+      signup: [/\b(sign[ -]?up|register|launch|available|account|join)\b/i, 'Public sign-ups are closed during the private pilot. You can try the counter demo now.', '#availability', 'Check availability'],
+      pricing: [/\b(price|prices|pricing|cost|how much|plans?|subscription|monthly|starter|enterprise)\b/i, 'Monthly pricing preview: ' + pricing + '.', '#plan-comparison', 'Compare plans'],
+      offline: [/\b(offline|internet|wi-?fi|connection)\b/i, 'The live workspace uses an internet connection. Offline operation is being tested in a separate pilot.', '#devices', 'See devices'],
+      owner: [/\b(owner|remotely|remote|phone|iphone|android|away|cash.?up)\b/i, 'Owner View is designed for checking sales, orders and cash-up on your phone. Existing pilot owners can sign in from the website.', '/staff-workspace.html?view=owner', 'Owner login'],
+      hardware: [/\b(equipment|hardware|computer|laptop|tablet|printer|scanner|barcode|till|fingerprint|devices?)\b/i, 'You can use a computer or tablet at the counter. The example till adds a receipt printer, barcode scanner and cash drawer. Fingerprint sign-in and peripheral compatibility are still being tested.', '#till-setup-title', 'See the till setup'],
+      branches: [/\b(branch(?:es)?|shops|locations|stores)\b/i, 'Growth covers up to 2 branches, Multi-Branch covers 3–5 and Enterprise covers 6–10 in the pricing preview.', '#plan-comparison', 'Compare branch limits'],
+      marketing: [/\b(whatsapp|broadcast|marketing|holiday|email|notifications?)\b/i, 'Laundrix supports individual laundry-ready notices in the pilot. Automated marketing and broadcasts are planned and depend on provider setup.', '#pricing', 'See plan features'],
+      laundry: [/\b(orders?|kg|kilograms?|loads?|invoice|invoices|deposits?|payments?|stock|pos|reports?)\b/i, 'Laundrix is designed to track laundry orders, deposits and outstanding balances. The Business plan and above list counter POS, stock and reports.', '#features', 'Explore features'],
+      demo: [/\b(demo|test|try|sample)\b/i, 'The counter demo lets you add a sample order, mark it ready and compare a closing cash count.', '#demo', 'Try the counter demo']
+    };
+    function showAnswer(topic) {
+      answer.textContent = topic ? topic[1] + ' ' : 'I don’t have an answer for that yet. Try asking about plans, the free trial, equipment or Owner View. ';
+      const link = document.createElement('a');
+      link.href = topic ? topic[2] : '#faq';
+      link.textContent = topic ? topic[3] : 'Read the FAQ';
+      answer.append(link);
+    }
+    panel.querySelector('form').addEventListener('submit', event => {
+      event.preventDefault();
+      const value = question.value.trim();
+      if (!value) {
+        question.focus();
+        return;
+      }
+      showAnswer(Object.values(topics).find(topic => topic[0].test(value)));
+    });
+    for (const button of panel.querySelectorAll('[data-topic]')) {
+      button.addEventListener('click', () => {
+        question.value = button.textContent;
+        showAnswer(topics[button.dataset.topic]);
+      });
+    }
+    panel.hidden = false;
+  }
 </script>
 </body>
 </html>
