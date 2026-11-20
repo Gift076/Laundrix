@@ -73,6 +73,9 @@ let accessToken = '';
 let activeBusiness;
 let revision = 0;
 let pending;
+// Keep queued work in the signed-in tab. This pilot does not cache customer data on disk.
+const offlinePilot = true;
+let unconfirmedSave;
 let saving = false;
 let conflict = false;
 let frameChannel;
@@ -147,14 +150,36 @@ async function openWorkspace(business) {
 
 async function flush() {
   if (saving || !pending || conflict) return;
+  if (offlinePilot && navigator.onLine === false) {
+    status('Offline. Changes are waiting in this tab. Keep it open until saved online.');
+    businessSelect.disabled = signOut.disabled = true;
+    retry.hidden = false;
+    return;
+  }
   saving = true;
   businessSelect.disabled = true;
   signOut.disabled = true;
   retry.hidden = true;
   try {
     while (pending) {
+      if (offlinePilot && unconfirmedSave) {
+        const row = (await api('/rest/v1/staff_workspaces?select=revision,state&business_id=eq.' + encodeURIComponent(activeBusiness.id)))[0];
+        const {state: sent, revision: sentRevision} = unconfirmedSave;
+        const keys = Object.keys(sent);
+        if (row?.revision === sentRevision &&
+            keys.length === Object.keys(row.state || {}).length &&
+            keys.every(key => row.state[key] === sent[key])) {
+          revision = sentRevision;
+          if (pending === sent) pending = undefined;
+        } else if ((row?.revision || 0) !== revision) {
+          throw Object.assign(new Error('Conflict'), {code:409});
+        }
+        unconfirmedSave = undefined;
+        if (!pending) break;
+      }
       const state = pending;
       const next = revision + 1;
+      if (offlinePilot) unconfirmedSave = {state, revision:next};
       status('Saving to Laundrix…');
       const path = '/rest/v1/staff_workspaces';
       const result = await api(
@@ -163,16 +188,20 @@ async function flush() {
          body: revision ? {revision:next,state} : {business_id:activeBusiness.id,revision:next,state}}
       );
       if (result?.length !== 1) throw Object.assign(new Error('Conflict'),{code:409});
+      unconfirmedSave = undefined;
       revision = next;
       if (pending === state) pending = undefined;
     }
     status('Saved online.');
   } catch (error) {
     if (error.code === 409) {
+      unconfirmedSave = undefined;
       conflict = true;
       status('Another session changed this workspace. Your latest changes were not saved. Reopen the page to load the online copy.');
     } else {
-      status('Changes are still in this tab. Keep it open and retry the save.');
+      status(offlinePilot
+        ? 'Waiting to sync. Keep this tab open. Laundrix retries when your device comes back online.'
+        : 'Changes are still in this tab. Keep it open and retry the save.');
       retry.hidden = false;
     }
   } finally {
@@ -253,6 +282,12 @@ window.addEventListener('message', event => {
   flush();
 });
 retry.addEventListener('click', flush);
+if (offlinePilot) {
+  window.addEventListener('online', flush);
+  window.addEventListener('offline', () => {
+    if (activeBusiness && !conflict) status('Offline. Keep this tab open to continue working and sync after reconnecting.');
+  });
+}
 window.addEventListener('beforeunload', event => {
   if (pending) {event.preventDefault();event.returnValue = '';}
 });
