@@ -28,7 +28,7 @@ try {
     const output = 'dist';
     fs.mkdirSync(output, {recursive:true});
     for (const entry of fs.readdirSync('.', {withFileTypes:true})) {
-      if (entry.isFile() && /\.(html|webp|mp4|zip)$/i.test(entry.name)) {
+      if (entry.isFile() && /\.(html|webp|mp4|zip|png|webmanifest)$/i.test(entry.name)) {
         fs.copyFileSync(entry.name, path.join(output, entry.name));
       }
     }
