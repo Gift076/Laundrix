@@ -6,6 +6,7 @@
 :root{color-scheme:dark}body{margin:0;background:#11100e;color:#fff5e6;font:16px system-ui}header{display:flex;align-items:center;gap:14px;padding:12px 20px;background:#1b1813;flex-wrap:wrap}header strong{color:#e8bd65;margin-right:auto}main{padding:16px}form{max-width:400px;margin:10vh auto;display:grid;gap:14px;padding:24px;background:#211c15;border-radius:14px}label{display:grid;gap:6px}input,button,select{padding:9px;border:1px solid #6c593c;border-radius:7px;font:inherit}button{background:#e8bd65;color:#231a0e;font-weight:700;cursor:pointer}iframe{border:0;width:100%;height:calc(100dvh - 78px);background:#fff}p[role=status]{margin:0;padding:0 20px}p[role=status]:not(:empty){padding-block:8px}dialog{width:min(510px,calc(100% - 46px));border:1px solid #6c593c;border-radius:12px;background:#211c15;color:#fff5e6}dialog::backdrop{background:#0009}dialog p{white-space:pre-wrap;overflow-wrap:anywhere}#draftPreview{max-height:36vh;overflow:auto}dialog a{color:#e8bd65;margin-right:14px}[hidden]{display:none!important}
 #ownerView{max-width:960px;margin:auto}#ownerView label{display:inline-flex;align-items:center;gap:8px;margin:4px 12px 4px 0}#ownerResults{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:12px}#ownerResults article{background:#211c15;border:1px solid #694f27;border-radius:12px;padding:16px}#ownerResults h3{color:#e8bd65;margin:0}#ownerResults p{margin:10px 0}
 [hidden]{display:none!important}#recoveryRequest{margin:0}
+#ownerEmployees{margin:22px 0;padding:16px;background:#211c15;border-radius:12px}#ownerEmployees summary{cursor:pointer;font-weight:700}#employeeList{padding:0;list-style:none}#employeeList li{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:8px 0;overflow-wrap:anywhere}
 </style>
 
 
@@ -32,7 +33,15 @@
 <button id="ownerRefresh" type="button">Refresh</button>
 <p id="ownerSync" role="status"></p>
 <p>Orders and stock show their current status. Payments and cash-up use the selected date.</p>
-<div id="ownerResults"></div>
+<div id="ownerResults"></div><details id="ownerEmployees"><summary>Employee access</summary>
+<p>Manage employee access for one shop at a time.</p>
+<label>Employee shop <select id="employeeShop"></select></label><button id="employeeReload" type="button">Refresh employees</button>
+<p id="employeeStatus" role="status"></p><ul id="employeeList"></ul>
+</details><dialog id="employeeConfirm" aria-labelledby="employeeConfirmTitle">
+<h2 id="employeeConfirmTitle">Deactivate shop access</h2><p id="employeeConfirmText"></p>
+<button id="confirmDeactivate" type="button">Deactivate access</button>
+<form method="dialog"><button>Cancel</button></form>
+</dialog>
 </main><dialog id="customerDraft" aria-labelledby="draftTitle">
 <h2 id="draftTitle">Review customer message</h2>
 <p id="draftRecipient"></p><p id="draftPreview"></p>
@@ -355,6 +364,9 @@ async function openOwner(businesses,userId) {
   if(!ownerShops.length)throw new Error('Owner access required');
   ownerShop.replaceChildren(new Option('All shops',''),...ownerShops.map(shop=>new Option(shop.name,shop.id)));
   ownerDate.value=ownerDay(new Date());
+  employeeShop.replaceChildren(new Option('Choose a shop',''),...ownerShops.map(shop=>new Option(shop.name,shop.id)));
+  employeePanel.open=false;
+  employeeStatus.textContent='Choose a shop.';
   login.hidden=true;
   signOut.hidden=false;
   ownerView.hidden=false;
@@ -406,6 +418,10 @@ signOut.addEventListener('click', async () => {
   accessToken = '';
   activeBusiness = undefined;
   frameChannel = undefined;
+  employeeLoad++;
+  employeeSelection=undefined;
+  employeeList.replaceChildren();
+  employeeConfirm.close();
   ownerRequest++;
   ownerSnapshots=[];
   ownerShops=[];
@@ -415,6 +431,67 @@ signOut.addEventListener('click', async () => {
   frame.hidden = businessSelect.hidden = signOut.hidden = true;
   login.hidden = false;
   status('Signed out.');
+});
+
+const employeePanel = el('ownerEmployees');
+const employeeShop = el('employeeShop');
+const employeeStatus = el('employeeStatus');
+const employeeList = el('employeeList');
+const employeeConfirm = el('employeeConfirm');
+let employeeSelection;
+let employeeLoad = 0;
+
+async function listEmployees() {
+  const request = ++employeeLoad;
+  const shop = employeeShop.value;
+  employeeList.replaceChildren();
+  if (!shop) {
+    employeeStatus.textContent = 'Choose a shop.';
+    return;
+  }
+  employeeStatus.textContent = 'Loading employees…';
+  try {
+    const rows = await api('/rest/v1/rpc/owner_list_shop_employees', {method:'POST', body:{shop_id:shop}});
+    if (request !== employeeLoad) return;
+    employeeStatus.textContent = rows.length ? '' : 'No managers or employees are assigned to this shop.';
+    for (const row of rows) {
+      const item = document.createElement('li');
+      const role = row.role_name === 'manager' ? 'Manager' : 'Employee';
+      addOwnerLine(item, 'span', (row.email || row.employee_id) + ' · ' + role + (row.is_active ? '' : ' · Inactive'));
+      if (row.is_active) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.textContent = 'Deactivate access';
+        button.addEventListener('click', () => {
+          employeeSelection = {shop_id:shop, employee_id:row.employee_id};
+          el('employeeConfirmText').textContent = 'Remove access for ' + (row.email || row.employee_id) + ' at ' + employeeShop.selectedOptions[0].text + '? Their historical records are kept.';
+          employeeConfirm.showModal();
+        });
+        item.append(button);
+      }
+      employeeList.append(item);
+    }
+  } catch {
+    if (request === employeeLoad) employeeStatus.textContent = 'Could not load employees. Refresh or sign in again.';
+  }
+}
+
+employeeShop.addEventListener('change',listEmployees);
+el('employeeReload').addEventListener('click',listEmployees);
+el('confirmDeactivate').addEventListener('click', async event => {
+  if (!employeeSelection) return;
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const removed = await api('/rest/v1/rpc/owner_deactivate_shop_employee', {method:'POST', body:employeeSelection});
+    employeeConfirm.close();
+    await listEmployees();
+    employeeStatus.textContent = removed ? 'Shop access deactivated.' : 'No active access was found for this employee.';
+  } catch {
+    el('employeeConfirmText').textContent = 'Could not deactivate access. Close this window and try again.';
+  } finally {
+    button.disabled = false;
+  }
 });
 
 const recoveryRequest = el('recoveryRequest');
