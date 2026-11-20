@@ -55,6 +55,12 @@
     .comparison td,.comparison th{text-align:left;padding:10px 14px;border-top:1px solid var(--border)}
     @media(max-width:760px){.demo-grid{grid-template-columns:1fr}}
   .device-photo{display:block;width:100%;height:auto;aspect-ratio:51/47;object-fit:cover;object-position:center;border-radius:9px;margin-bottom:14px}
+  .till-setup{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:clamp(16px,3vw,32px);align-items:center;margin-top:16px}
+  .till-setup img{display:block;width:100%;height:auto;border-radius:9px}
+  .till-setup ul{padding-inline-start:1.2em;margin:12px 0}
+  .till-setup li+li{margin-top:6px}
+  .till-note{font-size:.9rem}
+  @media(max-width:680px){.till-setup{grid-template-columns:1fr}}
 </style>
 </head>
 <body id="top">
@@ -112,6 +118,20 @@
         <article class="card"><img class="device-photo" src="/device-tablet-in-use.webp" width="510" height="660" loading="lazy" decoding="async" alt="Laundry worker tapping a tablet beside folded laundry"><h3>Tablet</h3><p>Use an iPad or Android tablet at the counter to take orders and check what’s ready for collection.</p><p><a href="#demo">Try the counter demo</a></p></article>
         <article class="card"><img class="device-photo" src="/device-phone-in-use.webp" width="510" height="660" loading="lazy" decoding="async" alt="Owner checking a phone away from the laundry"><h3>Smartphone</h3><p>Use an iPhone or Android phone to check sales, orders and cash-up from Owner View.</p><p><a href="/staff-workspace.html?view=owner">Owner login</a></p></article>
       </div>
+      <article class="card till-setup" aria-labelledby="till-setup-title">
+        <img src="/device-till-in-use.webp" width="960" height="640" loading="lazy" decoding="async" alt="Laundry worker scanning a product beside a till screen, receipt printer, cash drawer and fingerprint reader">
+        <div>
+          <h3 id="till-setup-title">Full till setup</h3>
+          <p>Set up a checkout counter for laundry orders and shop sales.</p>
+          <ul>
+            <li><strong>POS screen and cash drawer</strong> for ringing up sales and handling cash.</li>
+            <li><strong>Till-roll printer</strong> for paper receipts.</li>
+            <li><strong>Barcode scanner</strong> for scanning drinks, snacks and other products.</li>
+            <li><strong>Fingerprint reader</strong> for staff sign-in on compatible devices.</li>
+          </ul>
+          <p class="till-note">Example setup. Hardware compatibility and fingerprint sign-in still need testing.</p>
+        </div>
+      </article>
       <p>Face ID and fingerprint sign-in are still being tested. Offline operation is in a separate pilot.</p>
     </section>
     <section id="pricing" class="section" aria-labelledby="pricing-title">
