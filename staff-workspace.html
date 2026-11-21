@@ -26,7 +26,14 @@
 </style>
 
 
-<header><strong>Laundrix Staff</strong><select id="businessSelect" aria-label="Business" hidden=""></select><button id="retry" hidden="">Retry save</button><button id="signOut" hidden="">Sign out</button></header>
+<header><strong>Laundrix Staff</strong><select id="businessSelect" aria-label="Business" hidden=""></select><button id="sessionSettings" hidden>Settings</button><button id="retry" hidden="">Retry save</button><button id="signOut" hidden="">Sign out</button></header>
+<dialog id="idleSettings" aria-labelledby="idleSettingsTitle">
+<h2 id="idleSettingsTitle">Screen lock time</h2>
+<form method="dialog">
+<label for="idleSeconds">Lock after inactivity on this device</label>
+<select id="idleSeconds"><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="45">45 seconds</option><option value="60">1 minute</option></select>
+<button id="saveIdleSeconds" value="save">Save</button><button value="cancel">Cancel</button>
+</form></dialog>
 <p id="status" role="status"></p>
 <form id="login"><h1>Staff sign-in</h1><label>Email<input type="email" name="email" autocomplete="username" required=""></label><label>Password<input type="password" name="password" autocomplete="current-password" required=""></label><button>Sign in</button><button type="button" id="forgotPassword">Forgot password?</button><a id="workspaceMode" href="?view=owner">Owner sign-in</a></form>
 <aside id="ownerInstall" hidden>
@@ -113,8 +120,72 @@ let pending;
 let saving = false;
 let conflict = false;
 let frameChannel;
+let signedInUserId;
+let locked = false;
+let idleTimer;
+let lastActivity;
+let staffRoles = new Map();
+const timeoutKey = 'laundrix.screenLockSeconds';
+const allowedTimeouts = [15, 30, 45, 60];
+let idleSeconds = 60;
+try {
+  const saved = Number(localStorage.getItem(timeoutKey));
+  if (allowedTimeouts.includes(saved)) idleSeconds = saved;
+} catch {}
+const sessionSettings = el('sessionSettings');
+const idleSettings = el('idleSettings');
+function maySetLockTime() {
+  return ownerMode || ['owner','manager'].includes(staffRoles.get(activeBusiness?.id));
+}
+function resetIdleTimer() {
+  clearTimeout(idleTimer);
+  if (!signedInUserId || locked || (frame.hidden && ownerView.hidden)) return;
+  lastActivity = Date.now();
+  idleTimer = setTimeout(lockIfIdle, idleSeconds * 1000);
+}
+function lockIfIdle() {
+  if (!signedInUserId || locked) return;
+  const remaining = idleSeconds * 1000 - (Date.now() - lastActivity);
+  if (remaining > 0) {
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(lockIfIdle, remaining);
+    return;
+  }
+  locked = true;
+  accessToken = '';
+  for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
+  frame.hidden = ownerView.hidden = signOut.hidden = businessSelect.hidden = sessionSettings.hidden = retry.hidden = true;
+  login.hidden = false;
+  login.querySelector('h1').textContent = 'Laundrix is locked';
+  status('Sign in again with the same account to unlock this screen. Any pending changes are kept in this tab.');
+}
+function noteActivity() {
+  if (idleTimer && Date.now() - lastActivity >= idleSeconds * 1000) lockIfIdle();
+  else if (Date.now() - lastActivity >= 250) resetIdleTimer();
+}
+for (const eventName of ['pointerdown','pointermove','keydown','wheel']) {
+  window.addEventListener(eventName, noteActivity, {capture:true, passive:true});
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && signedInUserId && !locked && Date.now() - lastActivity >= idleSeconds * 1000) lockIfIdle();
+});
+sessionSettings.addEventListener('click', () => {
+  if (!maySetLockTime() || locked) return;
+  el('idleSeconds').value = idleSeconds;
+  idleSettings.showModal();
+});
+el('saveIdleSeconds').addEventListener('click', () => {
+  if (!maySetLockTime() || locked) return;
+  const choice = Number(el('idleSeconds').value);
+  if (!allowedTimeouts.includes(choice)) return;
+  idleSeconds = choice;
+  try {localStorage.setItem(timeoutKey, String(choice));} catch {}
+  resetIdleTimer();
+});
+
 
 function status(message) {
+  if (locked && !login.hidden && !message.startsWith('Sign in')) return;
   el('status').textContent = message;
 }
 
@@ -174,22 +245,25 @@ async function openWorkspace(business) {
   conflict = false;
   const encoded = JSON.stringify(values).replaceAll('<','\\u003c');
   frameChannel = crypto.randomUUID();
-  const bootstrap = '<scr' + 'ipt>window.workspaceChannel=' + JSON.stringify(frameChannel) + ';window.initialWorkspace=' + encoded + ';</scr' + 'ipt>';
+  const activityScript = ";let lastInput=0;for(const eventName of ['pointerdown','pointermove','keydown','wheel'])window.addEventListener(eventName,()=>{if(Date.now()-lastInput<250)return;lastInput=Date.now();parent.postMessage({type:'laundrix-activity',channel:window.workspaceChannel},'*')},{capture:true,passive:true});";
+  const bootstrap = '<scr' + 'ipt>window.workspaceChannel=' + JSON.stringify(frameChannel) + ';window.initialWorkspace=' + encoded + activityScript + '</scr' + 'ipt>';
   frame.srcdoc = demo.replace('<body>', () => '<body>' + bootstrap);
   frame.hidden = false;
   login.hidden = true;
   signOut.hidden = false;
+  sessionSettings.hidden = !maySetLockTime();
+  resetIdleTimer();
   status('');
 }
 
 async function flush() {
-  if (saving || !pending || conflict) return;
+  if (locked || saving || !pending || conflict) return;
   saving = true;
   businessSelect.disabled = true;
   signOut.disabled = true;
   retry.hidden = true;
   try {
-    while (pending) {
+    while (pending && !locked) {
       const state = pending;
       const next = revision + 1;
       status('Saving to Laundrix…');
@@ -210,7 +284,7 @@ async function flush() {
       status('Another session changed this workspace. Your latest changes were not saved. Reopen the page to load the online copy.');
     } else {
       status('Changes are still in this tab. Keep it open and retry the save.');
-      retry.hidden = false;
+      retry.hidden = locked;
     }
   } finally {
     saving = false;
@@ -279,6 +353,8 @@ function displayDocumentPreview({title, markup, invoice}) {
 
 window.addEventListener('message', event => {
   if (event.source !== frame.contentWindow || event.origin !== 'null' || event.data?.channel !== frameChannel || !activeBusiness) return;
+  if (event.data.type === 'laundrix-activity') {noteActivity(); return;}
+  if (locked && event.data.type !== 'laundrix-save') return;
   if (event.data.type === 'laundrix-document') return displayDocumentPreview(event.data);
   if (event.data.type === 'laundrix-draft') return displayCustomerDraft(event.data);
   if (event.data.type !== 'laundrix-save') return;
@@ -407,6 +483,8 @@ async function openOwner(businesses,userId) {
   login.hidden=true;
   signOut.hidden=false;
   ownerView.hidden=false;
+  sessionSettings.hidden=false;
+  resetIdleTimer();
   status('');
   await refreshOwner();
 }
@@ -446,9 +524,32 @@ login.addEventListener('submit', async event => {
   login.querySelector('button').disabled = true;
   try {
     const session = await api('/auth/v1/token?grant_type=password',{method:'POST',body:fields});
+    if (locked) {
+      if (session.user.id !== signedInUserId) {
+        status('Sign in with the account that locked this screen.');
+        return;
+      }
+      accessToken = session.access_token;
+      locked = false;
+      login.hidden = true;
+      login.querySelector('h1').textContent = ownerMode ? 'Owner sign-in' : 'Staff sign-in';
+      ownerView.hidden = !ownerMode;
+      frame.hidden = ownerMode;
+      signOut.hidden = false;
+      businessSelect.hidden = ownerMode || businessSelect.options.length < 2;
+      sessionSettings.hidden = !maySetLockTime();
+      resetIdleTimer();
+      if (conflict) status('Another session changed this workspace. Your pending changes are still in this tab.');
+      else if (pending) {retry.hidden = false; await flush();}
+      else status('');
+      return;
+    }
     accessToken = session.access_token;
+    signedInUserId = session.user.id;
     const businesses = await api('/rest/v1/businesses?select=id,name&order=name.asc');
     if(ownerMode)return await openOwner(businesses,session.user.id);
+    const roles = await api('/rest/v1/business_members?select=business_id,staff_role&user_id=eq.' + encodeURIComponent(signedInUserId)).catch(() => []);
+    staffRoles = new Map(roles.map(entry => [entry.business_id, entry.staff_role]));
     if (!businesses.length) throw new Error('No business assigned');
     businessSelect.replaceChildren(...businesses.map(value => new Option(value.name, value.id)));
     await openWorkspace(businesses[0]);
@@ -462,6 +563,8 @@ login.addEventListener('submit', async event => {
       finally {businessSelect.disabled = false;}
     };
   } catch (error) {
+    if (locked) {status('Sign in failed. Check your connection, email and password.'); return;}
+    signedInUserId = undefined;
     accessToken = '';
     status(error.message === 'Owner access required' ? 'This login has no owner access.' : error.code === 400 ? 'Sign-in failed. Check your email and password.' : 'Could not open your Laundrix workspace. Check your connection or staff assignment.');
   } finally {
@@ -470,8 +573,13 @@ login.addEventListener('submit', async event => {
 });
 signOut.addEventListener('click', async () => {
   if (pending || saving) return;
+  clearTimeout(idleTimer);
+  signedInUserId = undefined;
   try {await api('/auth/v1/logout?scope=local',{method:'POST'});} catch {}
   accessToken = '';
+  clearTimeout(idleTimer);
+  signedInUserId = undefined;
+  sessionSettings.hidden = true;
   activeBusiness = undefined;
   frameChannel = undefined;
   employeeLoad++;
