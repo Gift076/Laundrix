@@ -77,7 +77,15 @@
 <button id="ownerRefresh" type="button">Refresh</button>
 <p id="ownerSync" role="status"></p>
 <p>Orders and stock show their current status. Payments and cash-up use the selected date.</p>
-<div id="ownerResults"></div><details id="ownerEmployees"><summary>Employee access</summary>
+<div id="ownerResults"></div>
+<details id="ownerCustomers"><summary>Customers</summary>
+<label>Branch <select id="customerListShop"></select></label>
+<label>Show <select id="customerListFilter"><option value="all">All customers</option><option value="owing">Customers with outstanding balances</option></select></label>
+<label><input id="customerListPhones" type="checkbox"> Include phone numbers</label>
+<button id="printCustomerList" type="button">Preview customer list</button>
+<p id="customerListStatus" role="status"></p>
+</details>
+<details id="ownerEmployees"><summary>Employee access</summary>
 <p>Manage employee access for one shop at a time.</p>
 <label>Employee shop <select id="employeeShop"></select></label><button id="employeeReload" type="button">Refresh employees</button>
 <p id="employeeStatus" role="status"></p><ul id="employeeList"></ul>
@@ -426,6 +434,63 @@ function ownerDay(value) {
   return value && Number.isFinite(+date) ? ownerCalendar.format(date) : '';
 }
 function ownerCents(value) {return Math.round((Number(value)||0)*100);}
+function customerListRows(data, outstandingOnly) {
+  const customers = new Map((data.customers || []).map(customer => [
+    String(customer.id), {name:customer.name, phone:customer.phone, lastOrder:0, due:0}
+  ]));
+  for (const order of data.orders || []) {
+    const key = order.customerId == null ? 'order:' + order.id : String(order.customerId);
+    let customer = customers.get(key);
+    if (!customer) {
+      customer = {name:order.customer || 'Customer', phone:'', lastOrder:0, due:0};
+      customers.set(key, customer);
+    }
+    const date = Date.parse(order.date);
+    if (Number.isFinite(date)) customer.lastOrder = Math.max(customer.lastOrder, date);
+    customer.due += Math.max(0, ownerCents(order.due ?? (Number(order.total) - Number(order.paid || 0))));
+  }
+  return Array.from(customers.values())
+    .filter(customer => !outstandingOnly || customer.due > 0)
+    .sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''), 'en-ZA'));
+}
+
+function previewOwnerCustomerList() {
+  if (!ownerMode || ownerView.hidden || locked || !accessToken) return;
+  const shopId = el('customerListShop').value;
+  const shop = ownerSnapshots.find(snapshot => snapshot.id === shopId);
+  const status = el('customerListStatus');
+  if (!shop?.data || !ownerShops.some(branch => branch.id === shopId)) {
+    status.textContent = 'Choose a branch with saved customer records. Refresh Owner View if needed.';
+    return;
+  }
+  const outstandingOnly = el('customerListFilter').value === 'owing';
+  const includePhones = el('customerListPhones').checked;
+  const rows = customerListRows(shop.data, outstandingOnly);
+  const content = document.createElement('div');
+  addOwnerLine(content, 'h1', shop.name + ' · Customer list');
+  addOwnerLine(content, 'p', (outstandingOnly ? 'Customers with outstanding balances' : 'All customers') + ' · ' + rows.length);
+  if (rows.length) {
+    const table = content.appendChild(document.createElement('table'));
+    const head = table.createTHead().insertRow();
+    for (const heading of ['Customer', 'Last order', 'Outstanding balance', ...(includePhones ? ['Phone'] : [])]) {
+      addOwnerLine(head, 'th', heading);
+    }
+    const body = table.createTBody();
+    for (const customer of rows) {
+      const row = body.insertRow();
+      const values = [customer.name || 'Customer', ownerDay(customer.lastOrder) || '—', ownerCurrency.format(customer.due / 100)];
+      if (includePhones) values.push(customer.phone || '—');
+      for (const value of values) addOwnerLine(row, 'td', value);
+    }
+  } else {
+    addOwnerLine(content, 'p', 'No customers match this selection.');
+  }
+  status.textContent = '';
+  const style = '<style>body{font:14px system-ui,sans-serif;color:#111;margin:24px}table{border-collapse:collapse;width:100%}th,td{text-align:left;border-bottom:1px solid #bbb;padding:8px}thead{display:table-header-group}tr{break-inside:avoid}</style>';
+  displayDocumentPreview({title:'Customer list', markup:style + content.outerHTML});
+}
+el('printCustomerList').addEventListener('click', previewOwnerCustomerList);
+
 function ownerTotals(data, day) {
   const totals = {sales:0, cash:0, card:0, eft:0, other:0, pending:0, ready:0, low:0};
   function payment(method, amount) {
@@ -518,6 +583,11 @@ async function openOwner(businesses,userId) {
   if(!ownerShops.length)throw new Error('Owner access required');
   ownerShop.replaceChildren(new Option('All shops',''),...ownerShops.map(shop=>new Option(shop.name,shop.id)));
   ownerDate.value=ownerDay(new Date());
+  el('ownerCustomers').open=false;
+  el('customerListShop').replaceChildren(...ownerShops.map(shop=>new Option(shop.name,shop.id)));
+  el('customerListFilter').value='all';
+  el('customerListPhones').checked=false;
+  el('customerListStatus').textContent='';
   employeeShop.replaceChildren(new Option('Choose a shop',''),...ownerShops.map(shop=>new Option(shop.name,shop.id)));
   employeePanel.open=false;
   employeeStatus.textContent='Choose a shop.';
