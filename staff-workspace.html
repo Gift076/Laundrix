@@ -117,7 +117,10 @@ let accessToken = '';
 let activeBusiness;
 let revision = 0;
 let pending;
+let unconfirmedSave;
 let saving = false;
+let saveRetryTimer;
+let saveRetryDelay = 2000;
 let conflict = false;
 let frameChannel;
 let signedInUserId;
@@ -199,6 +202,7 @@ async function api(path, options = {}) {
       ...(options.representation ? {Prefer: 'return=representation'} : {})
     },
     body: options.body && JSON.stringify(options.body),
+    signal: options.signal,
     cache: 'no-store'
   });
   if (!response.ok) throw Object.assign(new Error('Request failed'), {code: response.status});
@@ -256,35 +260,71 @@ async function openWorkspace(business) {
   status('');
 }
 
+function scheduleSaveRetry() {
+  if (locked || !navigator.onLine) return;
+  saveRetryTimer = setTimeout(flush, saveRetryDelay);
+  saveRetryDelay = Math.min(saveRetryDelay * 2, 30000);
+}
+
 async function flush() {
   if (locked || saving || !pending || conflict) return;
+  clearTimeout(saveRetryTimer);
+  saveRetryTimer = undefined;
+  if (!navigator.onLine) {
+    businessSelect.disabled = true;
+    signOut.disabled = true;
+    status('Pending sync. Keep this tab open. Laundrix will save automatically when you reconnect.');
+    return;
+  }
   saving = true;
   businessSelect.disabled = true;
   signOut.disabled = true;
   retry.hidden = true;
   try {
     while (pending && !locked) {
-      const state = pending;
+      const state = unconfirmedSave ?? pending;
+      unconfirmedSave = state;
       const next = revision + 1;
       status('Saving to Laundrix…');
       const path = '/rest/v1/staff_workspaces';
-      const result = await api(
-        revision ? path + '?business_id=eq.' + encodeURIComponent(activeBusiness.id) + '&revision=eq.' + revision : path,
-        {method: revision ? 'PATCH' : 'POST', representation:true,
-         body: revision ? {revision:next,state} : {business_id:activeBusiness.id,revision:next,state}}
-      );
-      if (result?.length !== 1) throw Object.assign(new Error('Conflict'),{code:409});
+      const filter = 'business_id=eq.' + encodeURIComponent(activeBusiness.id);
+      const signal = AbortSignal.timeout(15000);
+      let confirmed;
+      try {
+        const result = await api(
+          revision ? path + '?' + filter + '&revision=eq.' + revision : path,
+          {method: revision ? 'PATCH' : 'POST', representation:true, signal,
+           body: revision ? {revision:next,state} : {business_id:activeBusiness.id,revision:next,state}}
+        );
+        confirmed = result?.length === 1;
+      } catch (error) {
+        if (error.code !== 409) throw error;
+      }
+      if (!confirmed) {
+        const [remote] = await api(path + '?select=revision,state&' + filter, {signal:AbortSignal.timeout(15000)});
+        const keys = Object.keys(state);
+        confirmed = remote?.revision === next &&
+          Object.keys(remote.state || {}).length === keys.length &&
+          keys.every(key => remote.state[key] === state[key]);
+      }
+      if (!confirmed) throw Object.assign(new Error('Conflict'),{code:409});
       revision = next;
+      unconfirmedSave = undefined;
+      saveRetryDelay = 2000;
       if (pending === state) pending = undefined;
     }
-    status('Saved online.');
+    if (!pending) status('Saved online.');
   } catch (error) {
     if (error.code === 409) {
       conflict = true;
-      status('Another session changed this workspace. Your latest changes were not saved. Reopen the page to load the online copy.');
+      status('Another till saved first. Your changes are still in this tab. Keep it open and contact your manager before refreshing.');
     } else {
-      status('Changes are still in this tab. Keep it open and retry the save.');
+      const temporary = !error.code || [408, 425, 429].includes(error.code) || error.code >= 500;
+      status(temporary
+        ? 'Pending sync. Keep this tab open. Laundrix will retry automatically.'
+        : 'Your changes are still in this tab. Keep it open and ask your manager to check your connection or access.');
       retry.hidden = locked;
+      if (temporary) scheduleSaveRetry();
     }
   } finally {
     saving = false;
@@ -363,9 +403,10 @@ window.addEventListener('message', event => {
   const permitted = Object.fromEntries(Object.entries(values).filter(([key,value]) =>
     ['laundrypro_demo','laundrypro_theme','laundrypro_custom_theme_v1','laundrypro_invoice_template_v1'].includes(key) && typeof value === 'string'));
   pending = permitted;
-  flush();
+  if (saveRetryTimer === undefined) flush();
 });
 retry.addEventListener('click', flush);
+window.addEventListener('online', flush);
 window.addEventListener('beforeunload', event => {
   if (pending) {event.preventDefault();event.returnValue = '';}
 });
