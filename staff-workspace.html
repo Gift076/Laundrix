@@ -31,7 +31,7 @@
 <h2 id="idleSettingsTitle">Screen lock time</h2>
 <form method="dialog">
 <label for="idleSeconds">Lock after inactivity on this device</label>
-<select id="idleSeconds"><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="45">45 seconds</option><option value="60">1 minute</option></select>
+<select id="idleSeconds"><option value="15">15 seconds</option><option value="30">30 seconds</option><option value="45">45 seconds</option><option value="60">1 minute</option><option value="3600">1 hour</option></select>
 <button id="saveIdleSeconds" value="save">Save</button><button value="cancel">Cancel</button>
 </form></dialog>
 <p id="status" role="status"></p>
@@ -137,7 +137,7 @@ let idleTimer;
 let lastActivity;
 let staffRoles = new Map();
 const timeoutKey = 'laundrix.screenLockSeconds';
-const allowedTimeouts = [15, 30, 45, 60];
+const allowedTimeouts = [15, 30, 45, 60, 3600];
 let idleSeconds = 60;
 try {
   const saved = Number(localStorage.getItem(timeoutKey));
