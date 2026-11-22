@@ -82,6 +82,11 @@
 <p id="ownerSync" role="status"></p>
 <p>Orders and stock show their current status. Payments and cash-up use the selected date.</p>
 <div id="ownerResults"></div>
+<section aria-label="Outstanding laundry and payments">
+<button id="ownerUncollected" type="button" aria-expanded="false" aria-controls="ownerOrderList">Uncollected laundry</button>
+<button id="ownerUnpaid" type="button" aria-expanded="false" aria-controls="ownerOrderList">Unpaid orders</button>
+<div id="ownerOrderList" hidden></div>
+</section>
 <section aria-labelledby="shopPerformanceHeading">
 <h2 id="shopPerformanceHeading">Shop performance</h2>
 <label>Period <select id="performanceDays"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select></label>
@@ -606,7 +611,49 @@ el('printPerformance').addEventListener('click', () => {
   if (ownerView.hidden || el('printPerformance').disabled) return;
   displayDocumentPreview({title:'Shop performance report', markup:'<style>body{font:14px system-ui;color:#18212f;margin:24px}table{border-collapse:collapse}th,td{padding:5px;border-bottom:1px solid #ccc}thead{display:table-header-group}tr{break-inside:avoid}</style><h1>Shop performance report</h1>'+el('performanceResult').innerHTML});
 });
+const ownerOrderButtons = {uncollected:el('ownerUncollected'),unpaid:el('ownerUnpaid')};
+let ownerOrderFilter = '';
+function ownerOrderBalance(order) {
+  return Math.max(0,ownerCents(order.due ?? (Number(order.total)-Number(order.paid || 0))));
+}
+function ownerOrderMatches(order, filter) {
+  if (filter === 'unpaid') return ownerOrderBalance(order) > 0;
+  return !['collected','delivered'].includes(order.collectionStatus);
+}
+function drawOwnerOrderList() {
+  const list = el('ownerOrderList');
+  list.replaceChildren();
+  list.hidden = !ownerOrderFilter;
+  const shops = ownerSnapshots.filter(shop=>shop.data && (!ownerShop.value || shop.id===ownerShop.value));
+  const orders = shops.flatMap(shop=>(shop.data.orders || []).map(order=>({shop,order})));
+  for (const [filter,button] of Object.entries(ownerOrderButtons)) {
+    const label = filter === 'unpaid' ? 'Unpaid orders' : 'Uncollected laundry';
+    button.textContent = label + (shops.length ? ' (' + orders.filter(({order})=>ownerOrderMatches(order,filter)).length + ')' : '');
+    button.setAttribute('aria-expanded',String(ownerOrderFilter===filter));
+    button.disabled = !shops.length;
+  }
+  if (!ownerOrderFilter) return;
+  const matches=orders.filter(({order})=>ownerOrderMatches(order,ownerOrderFilter))
+    .sort((a,b)=>(Date.parse(b.order.date)||0)-(Date.parse(a.order.date)||0));
+  addOwnerLine(list,'h3',ownerOrderButtons[ownerOrderFilter].textContent);
+  addOwnerLine(list,'p','Current orders across all dates for the selected shop or shops.');
+  if (!matches.length) {addOwnerLine(list,'p','No matching orders.');return;}
+  const entries=list.appendChild(document.createElement('ul'));
+  for (const {shop,order} of matches) {
+    const status={ready:'Ready for collection',collected:'Collected',delivered:'Delivered'}[order.collectionStatus] || 'Still in store';
+    const details=[shop.name,order.customer || 'Customer',order.id==null?'':'LP-'+String(order.id).slice(-8),ownerDay(order.date),status,
+      'Balance ' + ownerCurrency.format(ownerOrderBalance(order)/100)];
+    addOwnerLine(entries,'li',details.filter(Boolean).join(' · '));
+  }
+}
+for (const [filter,button] of Object.entries(ownerOrderButtons)) {
+  button.addEventListener('click',()=>{
+    ownerOrderFilter=ownerOrderFilter===filter?'':filter;
+    drawOwnerOrderList();
+  });
+}
 function drawOwner() {
+  drawOwnerOrderList();
   drawShopPerformance();
   const results=el('ownerResults');
   results.replaceChildren();
@@ -783,6 +830,8 @@ signOut.addEventListener('click', () => {
   employeeConfirm.close();
   ownerRequest++;
   ownerSnapshots=[];
+  ownerOrderFilter='';
+  drawOwnerOrderList();
   ownerShops=[];
   ownerView.hidden=true;
   el('ownerResults').replaceChildren();
