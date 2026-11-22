@@ -892,7 +892,15 @@ async function checkWorkspaceUpdate() {
     checkingWorkspaceUpdate = false;
   }
 }
-signOut.addEventListener('click', checkWorkspaceUpdate);
+signOut.addEventListener('click', async () => {
+  if (!canReloadWorkspace()) return;
+  await checkWorkspaceUpdate();
+  const signInInProgress = login.querySelector('button[type="submit"], button:not([type])')?.disabled;
+  const hasLoginInput = Array.from(login.querySelectorAll('input')).some(input => input.value);
+  if (canReloadWorkspace() && !workspaceUpdate.hidden && !signInInProgress && !hasLoginInput) {
+    location.reload();
+  }
+});
 window.addEventListener('focus', checkWorkspaceUpdate);
 window.addEventListener('online', checkWorkspaceUpdate);
 setInterval(checkWorkspaceUpdate, 60000);
