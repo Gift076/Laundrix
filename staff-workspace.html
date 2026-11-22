@@ -683,11 +683,9 @@ login.addEventListener('submit', async event => {
     login.querySelector('button').disabled = false;
   }
 });
-signOut.addEventListener('click', async () => {
+signOut.addEventListener('click', () => {
   if (pending || saving) return;
-  clearTimeout(idleTimer);
-  signedInUserId = undefined;
-  try {await api('/auth/v1/logout?scope=local',{method:'POST'});} catch {}
+  api('/auth/v1/logout?scope=local',{method:'POST', signal:AbortSignal.timeout(5000)}).catch(() => {});
   accessToken = '';
   clearTimeout(idleTimer);
   signedInUserId = undefined;
