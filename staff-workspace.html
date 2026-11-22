@@ -82,6 +82,12 @@
 <p id="ownerSync" role="status"></p>
 <p>Orders and stock show their current status. Payments and cash-up use the selected date.</p>
 <div id="ownerResults"></div>
+<section aria-labelledby="shopPerformanceHeading">
+<h2 id="shopPerformanceHeading">Shop performance</h2>
+<label>Period <select id="performanceDays"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select></label>
+<button type="button" id="printPerformance" disabled>Print performance report</button>
+<div id="performanceResult"></div>
+</section>
 <details id="ownerCustomers"><summary>Customers</summary>
 <label>Branch <select id="customerListShop"></select></label>
 <label>Show <select id="customerListFilter"><option value="all">All customers</option><option value="owing">Customers with outstanding balances</option></select></label>
@@ -534,7 +540,74 @@ function addOwnerLine(parent, tag, value) {
   element.textContent=value;
   parent.append(element);
 }
+function getShopPerformance(snapshots, branch, endDay, count) {
+  const shops = snapshots.filter(shop => (!branch || shop.id === branch) && shop.data);
+  if (!shops.length || !/^\d{4}-\d{2}-\d{2}$/.test(endDay)) return null;
+  const end = Date.parse(endDay + 'T12:00:00Z');
+  if (!Number.isFinite(end)) return null;
+  const days = Array.from({length:count*2}, (_,index) => {
+    const date = new Date(end - (count*2-1-index)*86400000).toISOString().slice(0,10);
+    const figures = {date,sales:0,received:0};
+    for (const shop of shops) {
+      const {totals} = ownerTotals(shop.data,date);
+      figures.sales += totals.sales;
+      figures.received += totals.cash + totals.card + totals.eft + totals.other;
+    }
+    return figures;
+  });
+  const current = days.slice(count);
+  const total = current.reduce((sum,day) => sum + day.sales,0);
+  const previous = days.slice(0,count).reduce((sum,day) => sum + day.sales,0);
+  const outstanding = shops.reduce((sum,shop) => sum + (shop.data.orders || [])
+    .reduce((balance,order) => balance + Math.max(0,ownerCents(order.due ?? (Number(order.total)-Number(order.paid || 0)))),0),0);
+  return {current,total,previous,outstanding,shops};
+}
+
+function drawShopPerformance() {
+  const target = el('performanceResult');
+  target.replaceChildren();
+  const selected = getShopPerformance(ownerSnapshots,ownerShop.value,ownerDate.value,Number(el('performanceDays').value));
+  el('printPerformance').disabled = !selected;
+  if (!selected) {addOwnerLine(target,'p','No saved shop data available for this view.');return;}
+  const {current,total,previous,outstanding,shops} = selected;
+  const format = value => ownerCurrency.format(value/100);
+  addOwnerLine(target,'h3',ownerShop.value ? shops[0].name : 'All available shops');
+  addOwnerLine(target,'p',current[0].date + ' to ' + current.at(-1).date);
+  addOwnerLine(target,'p','Sales ' + format(total) + ' · Payments received ' + format(current.reduce((sum,day)=>sum+day.received,0)));
+  addOwnerLine(target,'p',previous > 0
+    ? 'Sales change from the previous period: ' + new Intl.NumberFormat('en-ZA',{style:'percent',maximumFractionDigits:1,signDisplay:'exceptZero'}).format((total-previous)/previous)
+    : 'Previous period sales: ' + format(previous) + '. Percentage growth is unavailable when previous sales are zero.');
+  addOwnerLine(target,'h4','Daily sales');
+  const chart = target.appendChild(document.createElement('table'));
+  chart.style.cssText='width:100%;text-align:left';
+  const max = Math.max(1,...current.map(day=>day.sales));
+  const heading = chart.createTHead().insertRow();
+  for (const label of ['Date','Sales trend','Sales','Received']) addOwnerLine(heading,'th',label);
+  const body = chart.createTBody();
+  for (const day of current) {
+    const row = body.insertRow();
+    addOwnerLine(row,'td',day.date);
+    const cell = row.insertCell();
+    const bar = cell.appendChild(document.createElement('div'));
+    cell.style.cssText='width:33%;min-width:24px';
+    bar.style.cssText='height:10px;background:#b96c00;width:'+Math.max(0,day.sales/max*100)+'%;print-color-adjust:exact';
+    addOwnerLine(row,'td',format(day.sales));
+    addOwnerLine(row,'td',format(day.received));
+  }
+  addOwnerLine(target,'h4','Where to improve');
+  if (outstanding) addOwnerLine(target,'p','Follow up on current outstanding balances of ' + format(outstanding) + '.');
+  const low = shops.reduce((sum,shop)=>sum+ownerTotals(shop.data,ownerDate.value).totals.low,0);
+  if (low) addOwnerLine(target,'p','Review stock levels. ' + low + ' items are at or below their reorder threshold.');
+  if (previous > total) addOwnerLine(target,'p','Sales are down by ' + format(previous-total) + '. Review the slower days above.');
+  if (!outstanding && !low && previous <= total) addOwnerLine(target,'p','No outstanding balances, low stock or sales decline flagged in this view.');
+}
+el('performanceDays').addEventListener('change',drawShopPerformance);
+el('printPerformance').addEventListener('click', () => {
+  if (ownerView.hidden || el('printPerformance').disabled) return;
+  displayDocumentPreview({title:'Shop performance report', markup:'<style>body{font:14px system-ui;color:#18212f;margin:24px}table{border-collapse:collapse}th,td{padding:5px;border-bottom:1px solid #ccc}thead{display:table-header-group}tr{break-inside:avoid}</style><h1>Shop performance report</h1>'+el('performanceResult').innerHTML});
+});
 function drawOwner() {
+  drawShopPerformance();
   const results=el('ownerResults');
   results.replaceChildren();
   const format=cents=>ownerCurrency.format(cents/100);
@@ -713,6 +786,7 @@ signOut.addEventListener('click', () => {
   ownerShops=[];
   ownerView.hidden=true;
   el('ownerResults').replaceChildren();
+  drawShopPerformance();
   frame.srcdoc = '';
   frame.hidden = businessSelect.hidden = signOut.hidden = true;
   login.hidden = false;
