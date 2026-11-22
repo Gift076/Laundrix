@@ -27,6 +27,10 @@
 
 
 <header><strong>Laundrix Staff</strong><select id="businessSelect" aria-label="Business" hidden=""></select><button id="sessionSettings" hidden>Settings</button><button id="retry" hidden="">Retry save</button><button id="signOut" hidden="">Sign out</button></header>
+<div id="workspaceUpdate" role="status" hidden style="padding:10px 16px">
+  An update is available. Finish and sync your work before updating.
+  <button id="reloadWorkspace" type="button" hidden>Load update</button>
+</div>
 <dialog id="idleSettings" aria-labelledby="idleSettingsTitle">
 <h2 id="idleSettingsTitle">Screen lock time</h2>
 <form method="dialog">
@@ -855,6 +859,43 @@ recoveryNew.addEventListener('submit',async event=>{
   }
 });
 startRecovery();
+
+const runningWorkspaceCode = document.currentScript.textContent;
+const workspaceUpdate = el('workspaceUpdate');
+const reloadWorkspace = el('reloadWorkspace');
+let checkingWorkspaceUpdate = false;
+function canReloadWorkspace() {
+  return login.hidden === false && !signedInUserId && !pending && !saving && orderDrafts.size === 0;
+}
+reloadWorkspace.addEventListener('click', () => {
+  if (canReloadWorkspace()) location.reload();
+});
+async function checkWorkspaceUpdate() {
+  if (!workspaceUpdate.hidden) {
+    reloadWorkspace.hidden = !canReloadWorkspace();
+    return;
+  }
+  if (checkingWorkspaceUpdate || document.hidden || !navigator.onLine) return;
+  checkingWorkspaceUpdate = true;
+  try {
+    const response = await fetch(location.pathname, {cache:'no-store',signal:AbortSignal.timeout(8000)});
+    if (!response.ok) return;
+    const latest = new DOMParser().parseFromString(await response.text(), 'text/html');
+    const latestCode = Array.from(latest.scripts).find(script => script.textContent.includes('const demoBase64='));
+    if (latestCode && latestCode.textContent !== runningWorkspaceCode) {
+      workspaceUpdate.hidden = false;
+      reloadWorkspace.hidden = !canReloadWorkspace();
+    }
+  } catch {
+    // Keep the till usable if the update check fails.
+  } finally {
+    checkingWorkspaceUpdate = false;
+  }
+}
+signOut.addEventListener('click', checkWorkspaceUpdate);
+window.addEventListener('focus', checkWorkspaceUpdate);
+window.addEventListener('online', checkWorkspaceUpdate);
+setInterval(checkWorkspaceUpdate, 60000);
 </script>
 
 

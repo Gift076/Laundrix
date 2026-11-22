@@ -1,4 +1,15 @@
 {
   "buildCommand": "node verify-staff-workspace.cjs staff-workspace.html --stage",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/staff-workspace.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, must-revalidate"
+        }
+      ]
+    }
+  ]
 }
