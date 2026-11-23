@@ -23,6 +23,15 @@ try {
   const dashboard = Buffer.from(embedded[1], 'base64');
   assert.equal(dashboard.toString('base64'), embedded[1], 'Embedded dashboard encoding is incomplete');
   checkPage(dashboard.toString('utf8'), 'Embedded staff dashboard');
+  for (const [, attributes, contents] of dashboard.toString('utf8').matchAll(/<form\b([^>]*)>([\s\S]*?)<\/form>/gi)) {
+    if (/\bmethod\s*=\s*["']?dialog\b/i.test(attributes)) continue;
+    for (const [, button] of contents.matchAll(/<button\b([^>]*)>/gi)) {
+      assert.match(button, /\btype\s*=\s*(?:"(?:button|reset)"|'(?:button|reset)'|(?:button|reset)(?=\s|$))/i,
+        'Use an explicit button or reset type in the sandboxed staff form: ' + attributes.trim());
+    }
+    assert.doesNotMatch(contents, /<input\b[^>]*\btype\s*=\s*["']?(?:submit|image)\b/i,
+      'Native submit inputs are blocked in the sandboxed staff form: ' + attributes.trim());
+  }
 
   if (process.argv.includes('--stage')) {
     const output = 'dist';
